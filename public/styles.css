@@ -10,12 +10,16 @@ body {
     background-color: #ECE4D7;
     height: 100vh;
     overflow: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 .screen {
     height: 100vh;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
 }
 
 .hidden {
@@ -179,6 +183,34 @@ body {
     height: 100%;
 }
 
+/* Loading state */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(236, 228, 215, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #DDC8B7;
+    border-top: 3px solid #89999A;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Add Section */
 .add-section {
     display: flex;
@@ -247,7 +279,7 @@ body {
 
 .notebook-info p {
     font-size: 0.9rem;
-    color: #565656;
+    color: #89999A;
 }
 
 /* All delete buttons - grey color */
@@ -256,7 +288,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    color: #565656 !important;
+    color: #89999A !important;
     width: 35px;
     height: 35px;
     display: flex;
@@ -268,7 +300,7 @@ body {
 
 .delete-btn:hover {
     background: rgba(137, 153, 154, 0.2);
-    color: #565656 !important;
+    color: #333333 !important;
 }
 
 .delete-btn .material-icons {
@@ -297,7 +329,7 @@ body {
 /* Preserve line breaks in note content */
 .note-content {
     margin-bottom: 0.5rem;
-    color: #565656;
+    color: #333333;
     line-height: 1.4;
     word-wrap: break-word;
     white-space: pre-wrap;
@@ -309,8 +341,8 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 0.8rem;
-    color: #565656;
-    min-height: 40px; /* Add minimum height for better alignment */
+    color: #89999A;
+    min-height: 40px;
 }
 
 /* Note actions - side by side and vertically centered */
@@ -319,7 +351,7 @@ body {
     gap: 0.2rem;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 /* All note action buttons - grey color and vertically centered */
@@ -328,7 +360,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 0.4rem;
-    color: #565656 !important;
+    color: #89999A !important;
     width: 32px;
     height: 32px;
     display: flex;
@@ -350,16 +382,16 @@ body {
 
 /* Star icon - hollow when not favorite, filled when favorite - but still grey */
 .favorite-btn {
-    color: #565656 !important;
+    color: #89999A !important;
 }
 
 .favorite-btn.active {
-    color: #565656 !important;
+    color: #89999A !important;
 }
 
 .note-source {
     font-size: 0.75rem;
-    color: #565656;
+    color: #89999A;
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
@@ -510,7 +542,7 @@ body {
     color: #89999A;
 }
 
-/* Bottom Navigation */
+/* Bottom Navigation - Completely stuck to bottom with no margin */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -520,6 +552,8 @@ body {
     display: flex;
     padding: 0.5rem 0;
     border-top: 1px solid rgba(255,255,255,0.1);
+    margin: 0;
+    z-index: 1000;
 }
 
 .nav-btn {
@@ -534,6 +568,7 @@ body {
     cursor: pointer;
     padding: 0.5rem;
     transition: all 0.1s ease;
+    margin: 0;
 }
 
 .nav-btn.active {
