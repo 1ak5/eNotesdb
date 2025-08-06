@@ -7,7 +7,7 @@ class NotesApp {
         this.editingNote = null;
         this.lockPasswordSet = false;
         
-        // Cache for instant loading
+        // Ultra-fast cache with instant access
         this.cache = {
             notebooks: {},
             notes: {},
@@ -15,12 +15,20 @@ class NotesApp {
             locked: null
         };
         
-        // Loading states
+        // Prevent multiple loads
         this.isLoading = {
             notebooks: false,
             notes: false,
             favorites: false,
             locked: false
+        };
+        
+        // Real-time data store
+        this.liveData = {
+            notebooks: {},
+            notes: {},
+            favorites: [],
+            locked: []
         };
         
         this.init();
@@ -29,41 +37,27 @@ class NotesApp {
     async init() {
         this.bindEvents();
         this.showApp();
-        await this.checkSessionFast();
+        await this.checkSessionUltraFast();
     }
 
-    showLoading(containerId, message = 'Loading...') {
-        const container = document.getElementById(containerId);
-        if (container) {
-            container.innerHTML = `
-                <div class="loading-overlay">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">${message}</div>
-                </div>
-            `;
-        }
+    // NO loading screens - instant everything
+    showLoading() {
+        // Removed - no loading screens
     }
 
-    showSkeletonLoading(containerId, count = 3) {
-        const container = document.getElementById(containerId);
-        if (container) {
-            let skeletons = '';
-            for (let i = 0; i < count; i++) {
-                skeletons += '<div class="skeleton"></div>';
-            }
-            container.innerHTML = skeletons;
-        }
+    showSkeletonLoading() {
+        // Removed - no skeleton loading
     }
 
-    async checkSessionFast() {
+    async checkSessionUltraFast() {
         try {
             const response = await fetch('/api/check-session');
             const data = await response.json();
             
             if (data.authenticated) {
-                // Start preloading immediately
-                this.preloadAllDataFast();
-                this.loadNotebooksInstant();
+                // Preload EVERYTHING instantly
+                this.preloadEverythingInstantly();
+                this.renderNotebooksInstantly();
             } else {
                 this.showAuth();
             }
@@ -73,20 +67,29 @@ class NotesApp {
         }
     }
 
-    // Super fast preloading with skeleton screens
-    async preloadAllDataFast() {
+    // Preload ALL data instantly in parallel
+    async preloadEverythingInstantly() {
         try {
-            // Start all requests immediately without waiting
-            const regularPromise = fetch('/api/notebooks/regular').then(r => r.json()).catch(() => []);
-            const checklistPromise = fetch('/api/notebooks/checklist').then(r => r.json()).catch(() => []);
-            const favoritesPromise = fetch('/api/notes/favorites').then(r => r.json()).catch(() => []);
-            const lockedPromise = fetch('/api/notes/locked').then(r => r.json()).catch(() => []);
+            // Fire all requests simultaneously
+            const promises = [
+                fetch('/api/notebooks/regular').then(r => r.json()).catch(() => []),
+                fetch('/api/notebooks/checklist').then(r => r.json()).catch(() => []),
+                fetch('/api/notes/favorites').then(r => r.json()).catch(() => []),
+                fetch('/api/notes/locked').then(r => r.json()).catch(() => [])
+            ];
 
-            // Cache data as it arrives
-            regularPromise.then(data => { this.cache.notebooks.regular = data; });
-            checklistPromise.then(data => { this.cache.notebooks.checklist = data; });
-            favoritesPromise.then(data => { this.cache.favorites = data; });
-            lockedPromise.then(data => { this.cache.locked = data; });
+            const [regular, checklist, favorites, locked] = await Promise.all(promises);
+
+            // Store in both cache and live data
+            this.cache.notebooks.regular = regular;
+            this.cache.notebooks.checklist = checklist;
+            this.cache.favorites = favorites;
+            this.cache.locked = locked;
+            
+            this.liveData.notebooks.regular = regular;
+            this.liveData.notebooks.checklist = checklist;
+            this.liveData.favorites = favorites;
+            this.liveData.locked = locked;
 
         } catch (error) {
             console.error('Preload failed:', error);
@@ -106,11 +109,11 @@ class NotesApp {
         document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
         document.getElementById('back-btn').addEventListener('click', () => this.goBack());
         
-        // Super fast navigation
+        // INSTANT navigation - zero delay
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                this.switchSectionUltraFast(e.currentTarget.dataset.section);
+                this.switchSectionInstantly(e.currentTarget.dataset.section);
             });
         });
         
@@ -123,7 +126,7 @@ class NotesApp {
         document.getElementById('unlock-btn').addEventListener('click', () => this.unlockSection());
         
         // Modal events
-        document.getElementById('save-edit-btn').addEventListener('click', () => this.saveEdit());
+        document.getElementById('save-edit-btn').addEventListener('click', () => this.saveEditInstantly());
         document.getElementById('cancel-edit-btn').addEventListener('click', () => this.cancelEdit());
         
         // Enter key handlers
@@ -188,8 +191,8 @@ class NotesApp {
             
             if (data.success) {
                 this.showApp();
-                this.preloadAllDataFast();
-                this.loadNotebooksInstant();
+                this.preloadEverythingInstantly();
+                this.renderNotebooksInstantly();
             } else {
                 alert(data.error || 'Login failed');
             }
@@ -216,8 +219,8 @@ class NotesApp {
             
             if (data.success) {
                 this.showApp();
-                this.preloadAllDataFast();
-                this.loadNotebooksInstant();
+                this.preloadEverythingInstantly();
+                this.renderNotebooksInstantly();
             } else {
                 alert(data.error || 'Registration failed');
             }
@@ -244,6 +247,7 @@ class NotesApp {
         this.editingNote = null;
         this.lockPasswordSet = false;
         this.cache = { notebooks: {}, notes: {}, favorites: null, locked: null };
+        this.liveData = { notebooks: {}, notes: {}, favorites: [], locked: [] };
         this.isLoading = { notebooks: false, notes: false, favorites: false, locked: false };
         
         // Clear forms
@@ -253,8 +257,8 @@ class NotesApp {
         document.getElementById('register-pin').value = '';
     }
 
-    // Ultra fast section switching - INSTANT UI updates
-    switchSectionUltraFast(section) {
+    // INSTANT section switching - ZERO delay
+    switchSectionInstantly(section) {
         this.currentSection = section;
         this.currentView = (section === 'regular' || section === 'checklist') ? 'notebooks' : 'notes';
         this.isLockedUnlocked = false;
@@ -271,19 +275,19 @@ class NotesApp {
         document.getElementById('back-btn').classList.add('hidden');
         
         // Show appropriate view INSTANTLY
-        this.showViewUltraFast();
+        this.showViewInstantly();
         
-        // Load data with skeleton or cached data
+        // Render data INSTANTLY from cache/live data
         if (section === 'regular' || section === 'checklist') {
-            this.loadNotebooksUltraFast();
+            this.renderNotebooksInstantly();
         } else if (section === 'favorites') {
-            this.loadFavoritesUltraFast();
+            this.renderFavoritesInstantly();
         } else if (section === 'locked') {
-            this.showLockedSectionUltraFast();
+            this.showLockedSectionInstantly();
         }
     }
 
-    showViewUltraFast() {
+    showViewInstantly() {
         // Hide all views INSTANTLY
         document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
         
@@ -303,48 +307,21 @@ class NotesApp {
         }
     }
 
-    loadNotebooksUltraFast() {
-        const cachedData = this.cache.notebooks[this.currentSection];
-        if (cachedData) {
-            // Render cached data INSTANTLY
-            this.renderNotebooks(cachedData);
-        } else {
-            // Show skeleton loading INSTANTLY
-            this.showSkeletonLoading('notebooks-list', 4);
-            // Load data in background
-            this.loadNotebooks();
-        }
+    renderNotebooksInstantly() {
+        const data = this.liveData.notebooks[this.currentSection] || this.cache.notebooks[this.currentSection] || [];
+        this.renderNotebooks(data);
     }
 
-    loadFavoritesUltraFast() {
-        if (this.cache.favorites) {
-            // Render cached data INSTANTLY
-            this.renderFavorites(this.cache.favorites);
-        } else {
-            // Show skeleton loading INSTANTLY
-            this.showSkeletonLoading('favorites-list', 3);
-            // Load data in background
-            this.loadFavorites();
-        }
+    renderFavoritesInstantly() {
+        const data = this.liveData.favorites || this.cache.favorites || [];
+        this.renderFavorites(data);
     }
 
-    showLockedSectionUltraFast() {
-        if (this.cache.locked && this.isLockedUnlocked) {
-            // Render cached data INSTANTLY
-            this.renderLockedNotes(this.cache.locked);
+    showLockedSectionInstantly() {
+        if (this.liveData.locked && this.isLockedUnlocked) {
+            this.renderLockedNotes(this.liveData.locked);
         } else {
-            // Show lock screen or skeleton
             this.showLockedSection();
-        }
-    }
-
-    loadNotebooksInstant() {
-        const cachedData = this.cache.notebooks[this.currentSection];
-        if (cachedData) {
-            this.renderNotebooks(cachedData);
-        } else {
-            this.showSkeletonLoading('notebooks-list', 4);
-            this.loadNotebooks();
         }
     }
 
@@ -358,10 +335,14 @@ class NotesApp {
             const response = await fetch(`/api/notebooks/${this.currentSection}`);
             const notebooks = await response.json();
             
-            // Update cache
+            // Update both cache and live data
             this.cache.notebooks[this.currentSection] = notebooks;
+            this.liveData.notebooks[this.currentSection] = notebooks;
             
-            this.renderNotebooks(notebooks);
+            // Only re-render if we're still on the same section
+            if (this.currentView === 'notebooks') {
+                this.renderNotebooks(notebooks);
+            }
         } catch (error) {
             console.error('Failed to load notebooks:', error);
         } finally {
@@ -404,6 +385,23 @@ class NotesApp {
         
         if (!name) return;
         
+        // Clear input INSTANTLY
+        input.value = '';
+        
+        // Add to live data INSTANTLY
+        const newNotebook = {
+            _id: 'temp_' + Date.now(),
+            name: name,
+            noteCount: 0,
+            section: this.currentSection
+        };
+        
+        this.liveData.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection] || [];
+        this.liveData.notebooks[this.currentSection].unshift(newNotebook);
+        
+        // Re-render INSTANTLY
+        this.renderNotebooks(this.liveData.notebooks[this.currentSection]);
+        
         try {
             const response = await fetch('/api/notebooks', {
                 method: 'POST',
@@ -412,30 +410,48 @@ class NotesApp {
             });
             
             if (response.ok) {
-                input.value = '';
-                // Clear cache and reload INSTANTLY
-                delete this.cache.notebooks[this.currentSection];
-                this.showSkeletonLoading('notebooks-list', 4);
-                this.loadNotebooks();
+                const realNotebook = await response.json();
+                // Replace temp with real data
+                const index = this.liveData.notebooks[this.currentSection].findIndex(n => n._id === newNotebook._id);
+                if (index !== -1) {
+                    this.liveData.notebooks[this.currentSection][index] = realNotebook;
+                    this.renderNotebooks(this.liveData.notebooks[this.currentSection]);
+                }
+                // Update cache
+                this.cache.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection];
+            } else {
+                // Remove temp item on failure
+                this.liveData.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection].filter(n => n._id !== newNotebook._id);
+                this.renderNotebooks(this.liveData.notebooks[this.currentSection]);
             }
         } catch (error) {
             console.error('Failed to add notebook:', error);
+            // Remove temp item on error
+            this.liveData.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection].filter(n => n._id !== newNotebook._id);
+            this.renderNotebooks(this.liveData.notebooks[this.currentSection]);
         }
     }
 
     async deleteNotebook(id) {
         if (!confirm('Delete this notebook and all its notes?')) return;
         
+        // Remove from live data INSTANTLY
+        this.liveData.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection].filter(n => n._id !== id);
+        this.renderNotebooks(this.liveData.notebooks[this.currentSection]);
+        
         try {
             const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
             if (response.ok) {
-                // Clear cache and reload INSTANTLY
-                delete this.cache.notebooks[this.currentSection];
-                this.showSkeletonLoading('notebooks-list', 4);
+                // Update cache
+                this.cache.notebooks[this.currentSection] = this.liveData.notebooks[this.currentSection];
+            } else {
+                // Restore on failure - reload from server
                 this.loadNotebooks();
             }
         } catch (error) {
             console.error('Failed to delete notebook:', error);
+            // Restore on error - reload from server
+            this.loadNotebooks();
         }
     }
 
@@ -448,14 +464,12 @@ class NotesApp {
         document.getElementById('back-btn').classList.remove('hidden');
         
         // Show appropriate view INSTANTLY
-        this.showViewUltraFast();
+        this.showViewInstantly();
         
         if (this.currentSection === 'checklist') {
-            this.showSkeletonLoading('checklist-list', 6);
-            this.loadChecklistItems();
+            this.loadChecklistItemsInstantly();
         } else {
-            this.showSkeletonLoading('notes-list', 5);
-            this.loadNotes();
+            this.loadNotesInstantly();
         }
     }
 
@@ -469,9 +483,20 @@ class NotesApp {
                 this.currentSection.charAt(0).toUpperCase() + this.currentSection.slice(1);
             document.getElementById('back-btn').classList.add('hidden');
             
-            this.showViewUltraFast();
-            this.loadNotebooksUltraFast();
+            this.showViewInstantly();
+            this.renderNotebooksInstantly();
         }
+    }
+
+    async loadNotesInstantly() {
+        // Show cached data first if available
+        const cacheKey = this.currentNotebook ? `${this.currentSection}_${this.currentNotebook._id}` : this.currentSection;
+        if (this.liveData.notes[cacheKey]) {
+            this.renderNotes(this.liveData.notes[cacheKey]);
+        }
+        
+        // Load fresh data in background
+        this.loadNotes();
     }
 
     async loadNotes() {
@@ -485,6 +510,10 @@ class NotesApp {
                 
             const response = await fetch(url);
             const notes = await response.json();
+            
+            // Store in live data
+            const cacheKey = this.currentNotebook ? `${this.currentSection}_${this.currentNotebook._id}` : this.currentSection;
+            this.liveData.notes[cacheKey] = notes;
             
             this.renderNotes(notes);
         } catch (error) {
@@ -549,8 +578,27 @@ class NotesApp {
         
         if (!content) return;
         
-        // Clear input INSTANTLY for better UX
+        // Clear input INSTANTLY
         input.value = '';
+        
+        // Add to live data INSTANTLY
+        const newNote = {
+            _id: 'temp_' + Date.now(),
+            content: content,
+            section: this.currentSection,
+            notebookId: this.currentNotebook,
+            isFavorite: false,
+            isLocked: this.currentSection === 'locked',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
+        const cacheKey = this.currentNotebook ? `${this.currentSection}_${this.currentNotebook._id}` : this.currentSection;
+        this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey] || [];
+        this.liveData.notes[cacheKey].unshift(newNote);
+        
+        // Re-render INSTANTLY
+        this.renderNotes(this.liveData.notes[cacheKey]);
         
         try {
             const noteData = {
@@ -573,22 +621,39 @@ class NotesApp {
             });
             
             if (response.ok) {
-                // Clear relevant caches and reload
-                this.clearNoteCaches();
-                this.showSkeletonLoading('notes-list', 5);
-                this.loadNotes();
+                const realNote = await response.json();
+                // Replace temp with real data
+                const index = this.liveData.notes[cacheKey].findIndex(n => n._id === newNote._id);
+                if (index !== -1) {
+                    this.liveData.notes[cacheKey][index] = realNote;
+                    this.renderNotes(this.liveData.notes[cacheKey]);
+                }
+            } else {
+                // Remove temp item on failure
+                this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey].filter(n => n._id !== newNote._id);
+                this.renderNotes(this.liveData.notes[cacheKey]);
             }
         } catch (error) {
             console.error('Failed to add note:', error);
-            // Restore input if failed
-            input.value = content;
+            // Remove temp item on error
+            this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey].filter(n => n._id !== newNote._id);
+            this.renderNotes(this.liveData.notes[cacheKey]);
         }
     }
 
     clearNoteCaches() {
-        this.cache.favorites = null;
-        this.cache.locked = null;
-        this.cache.notes = {};
+        // Don't clear - keep live data for instant access
+    }
+
+    async loadChecklistItemsInstantly() {
+        // Show cached data first if available
+        const cacheKey = `${this.currentSection}_${this.currentNotebook._id}`;
+        if (this.liveData.notes[cacheKey]) {
+            this.renderChecklistItems(this.liveData.notes[cacheKey]);
+        }
+        
+        // Load fresh data in background
+        this.loadChecklistItems();
     }
 
     async loadChecklistItems() {
@@ -598,6 +663,10 @@ class NotesApp {
         try {
             const response = await fetch(`/api/notes/${this.currentSection}/${this.currentNotebook._id}`);
             const items = await response.json();
+            
+            // Store in live data
+            const cacheKey = `${this.currentSection}_${this.currentNotebook._id}`;
+            this.liveData.notes[cacheKey] = items;
             
             this.renderChecklistItems(items);
         } catch (error) {
@@ -640,6 +709,15 @@ class NotesApp {
             }
         }
         
+        // Update live data INSTANTLY
+        const cacheKey = `${this.currentSection}_${this.currentNotebook._id}`;
+        if (this.liveData.notes[cacheKey]) {
+            const noteIndex = this.liveData.notes[cacheKey].findIndex(n => n._id === id);
+            if (noteIndex !== -1) {
+                this.liveData.notes[cacheKey][noteIndex].isChecked = checked;
+            }
+        }
+        
         // Update server in background
         try {
             await fetch(`/api/notes/${id}`, {
@@ -669,6 +747,24 @@ class NotesApp {
         // Clear input INSTANTLY
         input.value = '';
         
+        // Add to live data INSTANTLY
+        const newItem = {
+            _id: 'temp_' + Date.now(),
+            content: content,
+            section: this.currentSection,
+            notebookId: this.currentNotebook._id,
+            isChecked: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
+        const cacheKey = `${this.currentSection}_${this.currentNotebook._id}`;
+        this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey] || [];
+        this.liveData.notes[cacheKey].unshift(newItem);
+        
+        // Re-render INSTANTLY
+        this.renderChecklistItems(this.liveData.notes[cacheKey]);
+        
         try {
             const response = await fetch('/api/notes', {
                 method: 'POST',
@@ -682,13 +778,23 @@ class NotesApp {
             });
             
             if (response.ok) {
-                this.showSkeletonLoading('checklist-list', 6);
-                this.loadChecklistItems();
+                const realItem = await response.json();
+                // Replace temp with real data
+                const index = this.liveData.notes[cacheKey].findIndex(n => n._id === newItem._id);
+                if (index !== -1) {
+                    this.liveData.notes[cacheKey][index] = realItem;
+                    this.renderChecklistItems(this.liveData.notes[cacheKey]);
+                }
+            } else {
+                // Remove temp item on failure
+                this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey].filter(n => n._id !== newItem._id);
+                this.renderChecklistItems(this.liveData.notes[cacheKey]);
             }
         } catch (error) {
             console.error('Failed to add checklist item:', error);
-            // Restore input if failed
-            input.value = content;
+            // Remove temp item on error
+            this.liveData.notes[cacheKey] = this.liveData.notes[cacheKey].filter(n => n._id !== newItem._id);
+            this.renderChecklistItems(this.liveData.notes[cacheKey]);
         }
     }
 
@@ -702,7 +808,7 @@ class NotesApp {
             } else {
                 this.lockPasswordSet = true;
                 if (this.isLockedUnlocked) {
-                    this.loadLockedNotesUltraFast();
+                    this.renderLockedNotesInstantly();
                 } else {
                     this.showLockPrompt();
                 }
@@ -712,13 +818,9 @@ class NotesApp {
         }
     }
 
-    loadLockedNotesUltraFast() {
-        if (this.cache.locked) {
-            this.renderLockedNotes(this.cache.locked);
-        } else {
-            this.showSkeletonLoading('locked-notes', 4);
-            this.loadLockedNotes();
-        }
+    renderLockedNotesInstantly() {
+        const data = this.liveData.locked || this.cache.locked || [];
+        this.renderLockedNotes(data);
     }
 
     showLockSetup() {
@@ -778,7 +880,7 @@ class NotesApp {
                 this.isLockedUnlocked = true;
                 document.querySelector('.locked-container').classList.add('hidden');
                 document.getElementById('locked-notes').classList.remove('hidden');
-                this.loadLockedNotesUltraFast();
+                this.renderLockedNotesInstantly();
             }
         } catch (error) {
             console.error('Failed to set lock password:', error);
@@ -803,7 +905,7 @@ class NotesApp {
                 this.isLockedUnlocked = true;
                 document.querySelector('.locked-container').classList.add('hidden');
                 document.getElementById('locked-notes').classList.remove('hidden');
-                this.loadLockedNotesUltraFast();
+                this.renderLockedNotesInstantly();
             } else {
                 alert('Incorrect password');
                 document.getElementById('unlock-password').value = '';
@@ -821,7 +923,8 @@ class NotesApp {
             const response = await fetch('/api/notes/locked');
             const notes = await response.json();
             
-            // Update cache
+            // Update live data
+            this.liveData.locked = notes;
             this.cache.locked = notes;
             
             this.renderLockedNotes(notes);
@@ -894,6 +997,23 @@ class NotesApp {
         // Clear input INSTANTLY
         input.value = '';
         
+        // Add to live data INSTANTLY
+        const newNote = {
+            _id: 'temp_' + Date.now(),
+            content: content,
+            section: 'locked',
+            isLocked: true,
+            isFavorite: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
+        this.liveData.locked = this.liveData.locked || [];
+        this.liveData.locked.unshift(newNote);
+        
+        // Re-render INSTANTLY
+        this.renderLockedNotes(this.liveData.locked);
+        
         try {
             const response = await fetch('/api/notes', {
                 method: 'POST',
@@ -906,15 +1026,25 @@ class NotesApp {
             });
             
             if (response.ok) {
-                // Clear cache and reload
-                this.cache.locked = null;
-                this.showSkeletonLoading('locked-notes', 4);
-                this.loadLockedNotes();
+                const realNote = await response.json();
+                // Replace temp with real data
+                const index = this.liveData.locked.findIndex(n => n._id === newNote._id);
+                if (index !== -1) {
+                    this.liveData.locked[index] = realNote;
+                    this.renderLockedNotes(this.liveData.locked);
+                }
+                // Update cache
+                this.cache.locked = this.liveData.locked;
+            } else {
+                // Remove temp item on failure
+                this.liveData.locked = this.liveData.locked.filter(n => n._id !== newNote._id);
+                this.renderLockedNotes(this.liveData.locked);
             }
         } catch (error) {
             console.error('Failed to add locked note:', error);
-            // Restore input if failed
-            input.value = content;
+            // Remove temp item on error
+            this.liveData.locked = this.liveData.locked.filter(n => n._id !== newNote._id);
+            this.renderLockedNotes(this.liveData.locked);
         }
     }
 
@@ -926,7 +1056,8 @@ class NotesApp {
             const response = await fetch('/api/notes/favorites');
             const notes = await response.json();
             
-            // Update cache
+            // Update live data
+            this.liveData.favorites = notes;
             this.cache.favorites = notes;
             
             this.renderFavorites(notes);
@@ -998,6 +1129,9 @@ class NotesApp {
             button.classList.toggle('active');
         }
         
+        // Update live data INSTANTLY
+        this.updateNoteInLiveData(id, { isFavorite: !button?.classList.contains('active') });
+        
         // Update server in background
         try {
             const response = await fetch(`/api/notes/${id}/favorite`, { method: 'POST' });
@@ -1009,9 +1143,6 @@ class NotesApp {
                     icon.textContent = isActive ? 'star_border' : 'star';
                     button.classList.toggle('active');
                 }
-            } else {
-                // Clear caches to ensure fresh data
-                this.clearNoteCaches();
             }
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
@@ -1025,63 +1156,72 @@ class NotesApp {
         }
     }
 
+    updateNoteInLiveData(id, updates) {
+        // Update in all relevant live data stores
+        Object.keys(this.liveData.notes).forEach(key => {
+            const notes = this.liveData.notes[key];
+            if (notes) {
+                const index = notes.findIndex(n => n._id === id);
+                if (index !== -1) {
+                    Object.assign(notes[index], updates);
+                }
+            }
+        });
+        
+        if (this.liveData.favorites) {
+            const index = this.liveData.favorites.findIndex(n => n._id === id);
+            if (index !== -1) {
+                Object.assign(this.liveData.favorites[index], updates);
+            }
+        }
+        
+        if (this.liveData.locked) {
+            const index = this.liveData.locked.findIndex(n => n._id === id);
+            if (index !== -1) {
+                Object.assign(this.liveData.locked[index], updates);
+            }
+        }
+    }
+
     editNote(id, content) {
         this.editingNote = id;
         document.getElementById('edit-textarea').value = content;
         document.getElementById('edit-modal').classList.remove('hidden');
     }
 
-    async saveEdit() {
+    // INSTANT edit save - NO loading, NO revert
+    async saveEditInstantly() {
         if (!this.editingNote) return;
         
         const content = document.getElementById('edit-textarea').value.trim();
         if (!content) return;
         
-        // Update UI INSTANTLY
+        // Update UI INSTANTLY and permanently
         const noteItem = document.querySelector(`[data-note-id="${this.editingNote}"]`);
         const noteContent = noteItem?.querySelector('.note-content');
         if (noteContent) {
-            noteContent.textContent = content;
+            noteContent.innerHTML = this.escapeHtml(content);
         }
+        
+        // Update live data INSTANTLY
+        this.updateNoteInLiveData(this.editingNote, { 
+            content: content, 
+            updatedAt: new Date() 
+        });
         
         // Close modal INSTANTLY
         this.cancelEdit();
         
+        // Update server in background - NO UI changes on success/failure
         try {
-            const response = await fetch(`/api/notes/${this.editingNote}`, {
+            await fetch(`/api/notes/${this.editingNote}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content })
             });
-            
-            if (!response.ok) {
-                // Revert if failed and reload
-                this.clearNoteCaches();
-                this.reloadCurrentView();
-            } else {
-                // Clear caches for consistency
-                this.clearNoteCaches();
-            }
         } catch (error) {
             console.error('Failed to save edit:', error);
-            // Reload on error
-            this.reloadCurrentView();
-        }
-    }
-
-    reloadCurrentView() {
-        if (this.currentSection === 'favorites') {
-            this.showSkeletonLoading('favorites-list', 3);
-            this.loadFavorites();
-        } else if (this.currentSection === 'locked' && this.isLockedUnlocked) {
-            this.showSkeletonLoading('locked-notes', 4);
-            this.loadLockedNotes();
-        } else if (this.currentView === 'notes') {
-            this.showSkeletonLoading('notes-list', 5);
-            this.loadNotes();
-        } else if (this.currentView === 'checklist') {
-            this.showSkeletonLoading('checklist-list', 6);
-            this.loadChecklistItems();
+            // Don't revert - keep the edit in UI
         }
     }
 
@@ -1097,33 +1237,34 @@ class NotesApp {
         // Remove from UI INSTANTLY
         const noteItem = document.querySelector(`[data-note-id="${id}"]`);
         if (noteItem) {
-            noteItem.style.opacity = '0.5';
-            noteItem.style.pointerEvents = 'none';
+            noteItem.remove();
         }
         
+        // Remove from live data INSTANTLY
+        this.removeNoteFromLiveData(id);
+        
         try {
-            const response = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                // Remove from DOM INSTANTLY
-                if (noteItem) {
-                    noteItem.remove();
-                }
-                // Clear caches
-                this.clearNoteCaches();
-            } else {
-                // Restore if failed
-                if (noteItem) {
-                    noteItem.style.opacity = '1';
-                    noteItem.style.pointerEvents = 'auto';
-                }
-            }
+            await fetch(`/api/notes/${id}`, { method: 'DELETE' });
         } catch (error) {
             console.error('Failed to delete note:', error);
-            // Restore if failed
-            if (noteItem) {
-                noteItem.style.opacity = '1';
-                noteItem.style.pointerEvents = 'auto';
+            // Don't restore - keep deleted from UI
+        }
+    }
+
+    removeNoteFromLiveData(id) {
+        // Remove from all live data stores
+        Object.keys(this.liveData.notes).forEach(key => {
+            if (this.liveData.notes[key]) {
+                this.liveData.notes[key] = this.liveData.notes[key].filter(n => n._id !== id);
             }
+        });
+        
+        if (this.liveData.favorites) {
+            this.liveData.favorites = this.liveData.favorites.filter(n => n._id !== id);
+        }
+        
+        if (this.liveData.locked) {
+            this.liveData.locked = this.liveData.locked.filter(n => n._id !== id);
         }
     }
 }
