@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eNotes</title>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="auth-screen" class="screen">
+        <div class="auth-container">
+            <h1>eNotes</h1>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+            
+            <form id="login-form" class="auth-form">
+                <input type="text" id="login-username" placeholder="Username" required>
+                <input type="password" id="login-pin" placeholder="PIN" required>
+                <button type="submit">Login</button>
+            </form>
+            
+            <form id="register-form" class="auth-form hidden">
+                <input type="text" id="register-username" placeholder="Username" required>
+                <input type="password" id="register-pin" placeholder="PIN" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="app-screen" class="screen hidden">
+        <!-- Header -->
+        <header class="header">
+            <button id="back-btn" class="back-btn hidden">
+                <i class="material-icons">arrow_back</i>
+            </button>
+            <h1 id="header-title">eNotes</h1>
+            <button id="logout-btn" class="logout-btn">Logout</button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Notebooks View -->
+            <div id="notebooks-view" class="view">
+                <div class="add-section">
+                    <input type="text" id="notebook-input" placeholder="Create new notebook...">
+                    <button id="add-notebook-btn">Add</button>
+                </div>
+                <div id="notebooks-list" class="notebooks-list"></div>
+            </div>
+
+            <!-- Notes View -->
+            <div id="notes-view" class="view hidden">
+                <div class="add-section">
+                    <input type="text" id="note-input" placeholder="Add a note...">
+                    <button id="add-note-btn">Add</button>
+                </div>
+                <div id="notes-list" class="notes-list"></div>
+            </div>
+
+            <!-- Checklist Items View -->
+            <div id="checklist-view" class="view hidden">
+                <div class="add-section">
+                    <input type="text" id="checklist-input" placeholder="Add new item...">
+                    <button id="add-checklist-btn">Add</button>
+                </div>
+                <div id="checklist-list" class="checklist-list"></div>
+            </div>
+
+            <!-- Locked Section -->
+            <div id="locked-view" class="view hidden">
+                <div class="locked-container">
+                    <div class="lock-icon">
+                        <i class="material-icons">lock</i>
+                    </div>
+                    <h2>This section is locked</h2>
+                    <p>Please enter your password to unlock</p>
+                    <input type="password" id="unlock-password" placeholder="Password">
+                    <button id="unlock-btn">Unlock</button>
+                </div>
+                <div id="locked-notes" class="notes-list hidden"></div>
+            </div>
+
+            <!-- Favorites View -->
+            <div id="favorites-view" class="view hidden">
+                <div class="favorites-header">
+                    <div class="star-icon">
+                        <i class="material-icons">star_border</i>
+                    </div>
+                    <h2>Favorites</h2>
+                    <p id="favorites-count">0 starred notes</p>
+                </div>
+                <div id="favorites-list" class="notes-list"></div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-section="regular">
+                <span class="nav-icon">
+                    <i class="material-icons">description</i>
+                </span>
+                <span class="nav-label">Regular</span>
+            </button>
+            <button class="nav-btn" data-section="checklist">
+                <span class="nav-icon">
+                    <i class="material-icons">checklist</i>
+                </span>
+                <span class="nav-label">Checklist</span>
+            </button>
+            <button class="nav-btn" data-section="locked">
+                <span class="nav-icon">
+                    <i class="material-icons">lock</i>
+                </span>
+                <span class="nav-label">Locked</span>
+            </button>
+            <button class="nav-btn" data-section="favorites">
+                <span class="nav-icon">
+                    <i class="material-icons">star</i>
+                </span>
+                <span class="nav-label">Favorites</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Edit Note</h3>
+            <textarea id="edit-textarea" placeholder="Enter your note..."></textarea>
+            <div class="modal-actions">
+                <button id="save-edit-btn">Save</button>
+                <button id="cancel-edit-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
