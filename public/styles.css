@@ -191,58 +191,6 @@ html, body {
     position: relative;
 }
 
-/* Loading state - improved */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(236, 228, 215, 0.9);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    backdrop-filter: blur(2px);
-}
-
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid #DDC8B7;
-    border-top: 3px solid #89999A;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 1rem;
-}
-
-.loading-text {
-    color: #89999A;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Skeleton loading for better UX */
-.skeleton {
-    background: linear-gradient(90deg, #DDC8B7 25%, #CDACA1 50%, #DDC8B7 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 15px;
-    height: 80px;
-    margin-bottom: 0.5rem;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
 /* Add Section */
 .add-section {
     display: flex;
@@ -281,7 +229,7 @@ html, body {
     background: #b89a8f;
 }
 
-/* Notebooks List */
+/* Notebooks List - Light 3D effect */
 .notebooks-list {
     display: flex;
     flex-direction: column;
@@ -296,11 +244,15 @@ html, body {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.1s ease !important;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
 }
 
 .notebook-item:hover {
     background: #CDACA1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .notebook-info h3 {
@@ -311,10 +263,11 @@ html, body {
 
 .notebook-info p {
     font-size: 0.9rem;
-    color: #89999A;
+    color: #666666;
+    font-weight: 500;
 }
 
-/* All delete buttons - grey color */
+/* All delete buttons - original grey color */
 .delete-btn {
     background: none;
     border: none;
@@ -340,7 +293,7 @@ html, body {
     font-size: 18px;
 }
 
-/* Notes List */
+/* Notes List - Light 3D effect */
 .notes-list {
     display: flex;
     flex-direction: column;
@@ -352,10 +305,17 @@ html, body {
     border-radius: 15px;
     padding: 1rem;
     position: relative;
-    transition: background-color 0.1s ease !important;
+    transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.note-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* Preserve line breaks in note content */
@@ -373,8 +333,9 @@ html, body {
     justify-content: space-between;
     align-items: center;
     font-size: 0.8rem;
-    color: #89999A;
+    color: #666666;
     min-height: 40px;
+    font-weight: 500;
 }
 
 /* Note actions - side by side and vertically centered */
@@ -386,7 +347,7 @@ html, body {
     flex-shrink: 0;
 }
 
-/* All note action buttons - grey color and vertically centered */
+/* All note action buttons - original grey color and vertically centered */
 .note-actions button {
     background: none;
     border: none;
@@ -423,18 +384,19 @@ html, body {
 
 .note-source {
     font-size: 0.75rem;
-    color: #89999A;
+    color: #666666;
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    font-weight: 500;
 }
 
 .note-source .material-icons {
     font-size: 14px;
 }
 
-/* Checklist */
+/* Checklist - Light 3D effect */
 .checklist-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -448,7 +410,14 @@ html, body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.2s ease !important;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.checklist-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* Real-time color change for completed items */
@@ -641,6 +610,7 @@ html, body {
     padding: 2rem;
     width: 90%;
     max-width: 400px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
 .modal-content h3 {
