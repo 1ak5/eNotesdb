@@ -421,6 +421,15 @@ async backgroundPreload() {
         if (!username || !pin) return;
         
         try {
+            // First, disconnect any existing socket connection
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
+            // Clear all existing data before making the request
+            this.resetApp();
+            
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -430,15 +439,24 @@ async backgroundPreload() {
             const data = await response.json();
             
             if (data.success) {
+                // Set new user data
                 this.userId = data.userId;
-                // Set username in header
                 document.getElementById('username-display').textContent = `Hi ${username}`;
+                
+                // Show app screen
                 this.showApp();
+                
+                // Initialize new socket connection
                 this.initializeSocket();
-                this.loadInitialSection();
-            } else {
-                alert(data.error || 'Login failed');
+                
+                // Small delay to ensure complete cleanup before loading new data
+                setTimeout(() => {
+                    this.ultraFastLoad();
+                }, 100);
+                
+                return; // Exit early on success
             }
+            alert(data.error || 'Login failed');
         } catch (error) {
             alert('Login failed: ' + error.message);
         }
@@ -452,6 +470,15 @@ async backgroundPreload() {
         if (!username || !pin) return;
         
         try {
+            // First, disconnect any existing socket connection
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
+            // Clear all existing data before making the request
+            this.resetApp();
+            
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -461,15 +488,24 @@ async backgroundPreload() {
             const data = await response.json();
             
             if (data.success) {
+                // Set new user data
                 this.userId = data.userId;
-                // Set username in header
                 document.getElementById('username-display').textContent = `Hi ${username}`;
+                
+                // Show app screen
                 this.showApp();
+                
+                // Initialize new socket connection
                 this.initializeSocket();
-                this.loadInitialSection();
-            } else {
-                alert(data.error || 'Registration failed');
+                
+                // Small delay to ensure complete cleanup before loading new data
+                setTimeout(() => {
+                    this.ultraFastLoad();
+                }, 100);
+                
+                return; // Exit early on success
             }
+            alert(data.error || 'Registration failed');
         } catch (error) {
             alert('Registration failed: ' + error.message);
         }
@@ -490,6 +526,13 @@ async backgroundPreload() {
     }
 
     resetApp() {
+        // Disconnect and clear socket first
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+
+        // Reset all application state
         this.currentSection = 'regular';
         this.currentNotebook = null;
         this.currentView = 'notebooks';
@@ -501,7 +544,7 @@ async backgroundPreload() {
         // Reset username display
         document.getElementById('username-display').textContent = 'Hi User';
         
-        // Reset cache
+        // Aggressively clear cache
         this.cache = {
             notebooks: { regular: null, checklist: null },
             notes: {},
@@ -509,13 +552,30 @@ async backgroundPreload() {
             locked: null,
             isLoaded: { regular: false, checklist: false, favorites: false, locked: false }
         };
+        
+        // Reset all loading states
         this.isLoading = { notebooks: false, notes: false, favorites: false, locked: false };
         
-        // Clear forms
-        document.getElementById('login-username').value = '';
-        document.getElementById('login-pin').value = '';
-        document.getElementById('register-username').value = '';
-        document.getElementById('register-pin').value = '';
+        // Clear all UI elements
+        ['notebooks-list', 'notes-list', 'checklist-list', 'favorites-list', 'locked-list'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.innerHTML = '';
+        });
+        
+        // Reset all input fields
+        ['login-username', 'login-pin', 'register-username', 'register-pin', 
+         'notebook-input', 'note-input', 'checklist-input', 'unlock-password'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        // Reset navigation state
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('[data-section="regular"]')?.classList.add('active');
+        
+        // Clear any modal or edit state
+        document.getElementById('back-btn')?.classList.add('hidden');
+        document.getElementById('header-title').textContent = 'Regular';
     }
 
     // INSTANT section switching with real-time data
