@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eNotes</title>
+    <title>eNotes - Real-time</title>
     <!-- Google Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -36,11 +36,16 @@
     <div id="app-screen" class="screen hidden">
         <!-- Header -->
         <header class="header">
-            <button id="back-btn" class="back-btn hidden">
-                <i class="material-icons">arrow_back</i>
-            </button>
+            <div class="header-left">
+                <button id="back-btn" class="back-btn hidden">
+                    <i class="material-icons">arrow_back</i>
+                </button>
+                <span id="username-display" class="username-display">Hi User</span>
+            </div>
             <h1 id="header-title">eNotes</h1>
-            <button id="logout-btn" class="logout-btn">Logout</button>
+            <div class="header-right">
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -140,6 +145,8 @@
         </div>
     </div>
 
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
