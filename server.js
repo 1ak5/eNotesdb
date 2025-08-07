@@ -237,7 +237,7 @@ app.post('/api/register', async (req, res) => {
     }
 
     const hashedPin = await bcrypt.hash(pin, 10);
-    const user = new User({ username, pin: hashedPin });
+    const user = new User({ username, pin});
     await user.save();
 
     req.session.userId = user._id;
@@ -495,12 +495,11 @@ app.post('/api/notes/:id/favorite', requireAuth, async (req, res) => {
 // Add route to set lock password
 app.post('/api/set-lock-password', requireAuth, async (req, res) => {
   try {
-    const { password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
+       const { password } = req.body;
+
     await UserSettings.findOneAndUpdate(
       { userId: req.session.userId },
-      { lockPassword: hashedPassword },
+      { lockPassword: password }, // plain text password stored
       { upsert: true }
     );
     
