@@ -1,20 +1,76 @@
+// Fix punycode warning
+process.removeAllListeners('warning');
+
+// Load environment variables first
+require('dotenv').config();
+
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://suryawanshiaditya915:j28ypFv6unzrodIz@notesapp.d3r8gkc.mongodb.net/notes-app?retryWrites=true&w=majority';
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Simplified MongoDB connection
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+    console.log('💡 Please make sure MongoDB is running locally or check your Atlas connection');
+    
+    // Try to give more helpful error messages
+    if (error.message.includes('ECONNREFUSED')) {
+      console.log('🔧 MongoDB is not running. Start it with: mongod');
+    } else if (error.message.includes('authentication failed')) {
+      console.log('🔐 Check your MongoDB username/password in connection string');
+    }
+    
+    process.exit(1);
+  }
+};
 
-// MongoDB connection
-mongoose.connect('mongodb+srv://suryawanshiaditya915:j28ypFv6unzrodIz@notesapp.d3r8gkc.mongodb.net/notes-app?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
+// Connect to database
+connectDB();
+
+// Handle connection events
+mongoose.connection.on('connected', () => {
+  console.log('🚀 Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ Mongoose disconnected');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('👋 MongoDB connection closed.');
+  process.exit(0);
 });
 
 // User Schema
@@ -60,20 +116,26 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Session configuration
-app.use(session({
-  secret: 'your-secret-key',
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: 'mongodb+srv://suryawanshiaditya915:j28ypFv6unzrodIz@notesapp.d3r8gkc.mongodb.net/notes-app?retryWrites=true&w=majority',
-    touchAfter: 24 * 3600 // lazy session update
+    mongoUrl: MONGODB_URI
   }),
   cookie: { 
     maxAge: 30 * 24 * 60 * 60 * 1000,
     secure: false,
     httpOnly: true
   }
-}));
+});
+
+app.use(sessionMiddleware);
+
+// Share session with socket.io
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
 
 // Add user settings schema for lock password
 const userSettingsSchema = new mongoose.Schema({
@@ -90,6 +152,75 @@ const requireAuth = (req, res, next) => {
     next();
   } else {
     res.status(401).json({ error: 'Authentication required' });
+  }
+};
+
+// Socket.IO connection handling
+const userSockets = new Map(); // Track user sockets
+
+io.on('connection', (socket) => {
+  console.log('👤 User connected:', socket.id);
+  
+  // Store user socket when authenticated
+  socket.on('authenticate', (userId) => {
+    if (userId) {
+      userSockets.set(userId, socket.id);
+      socket.userId = userId;
+      console.log(`✅ User ${userId} authenticated with socket ${socket.id}`);
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    if (socket.userId) {
+      userSockets.delete(socket.userId);
+      console.log(`👋 User ${socket.userId} disconnected`);
+    }
+  });
+});
+
+// Broadcast functions for real-time updates
+const broadcastToUser = (userId, event, data) => {
+  const socketId = userSockets.get(userId.toString());
+  if (socketId) {
+    io.to(socketId).emit(event, data);
+  }
+};
+
+const broadcastNotebookUpdate = async (userId, section) => {
+  try {
+    const notebooks = await Notebook.find({ userId, section }).lean().sort({ createdAt: -1 });
+    const notebooksWithCounts = await Promise.all(
+      notebooks.map(async (notebook) => {
+        const noteCount = await Note.countDocuments({ notebookId: notebook._id });
+        return { ...notebook, noteCount };
+      })
+    );
+    broadcastToUser(userId, 'notebooks_updated', { section, notebooks: notebooksWithCounts });
+  } catch (error) {
+    console.error('Failed to broadcast notebook update:', error);
+  }
+};
+
+const broadcastNotesUpdate = async (userId, section, notebookId = null) => {
+  try {
+    let query = { userId, section };
+    if (section === 'regular' || section === 'checklist') {
+      query.notebookId = notebookId;
+    } else if (section === 'favorites') {
+      query = { userId, isFavorite: true };
+    } else if (section === 'locked') {
+      query.isLocked = true;
+    }
+
+    const notes = await Note.find(query)
+      .populate('notebookId', 'name')
+      .lean()
+      .sort({ updatedAt: -1 })
+      .limit(100);
+    
+    broadcastToUser(userId, 'notes_updated', { section, notebookId, notes });
+  } catch (error) {
+    console.error('Failed to broadcast notes update:', error);
   }
 };
 
@@ -153,7 +284,7 @@ app.get('/api/notebooks/:section', requireAuth, async (req, res) => {
       section 
     }).lean().sort({ createdAt: -1 });
 
-    // Get note counts in parallel for better performance
+    // Get note counts
     const notebooksWithCounts = await Promise.all(
       notebooks.map(async (notebook) => {
         const noteCount = await Note.countDocuments({ 
@@ -182,6 +313,10 @@ app.post('/api/notebooks', requireAuth, async (req, res) => {
       section
     });
     await notebook.save();
+    
+    // Real-time broadcast
+    broadcastNotebookUpdate(req.session.userId, section);
+    
     res.json(notebook);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -191,8 +326,17 @@ app.post('/api/notebooks', requireAuth, async (req, res) => {
 // Delete notebook
 app.delete('/api/notebooks/:id', requireAuth, async (req, res) => {
   try {
+    const notebook = await Notebook.findById(req.params.id);
+    if (!notebook) {
+      return res.status(404).json({ error: 'Notebook not found' });
+    }
+    
     await Note.deleteMany({ notebookId: req.params.id });
     await Notebook.findByIdAndDelete(req.params.id);
+    
+    // Real-time broadcast
+    broadcastNotebookUpdate(req.session.userId, notebook.section);
+    
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -217,7 +361,7 @@ app.get('/api/notes/:section/:notebookId?', requireAuth, async (req, res) => {
       .populate('notebookId', 'name')
       .lean()
       .sort({ updatedAt: -1 })
-      .limit(100); // Limit results for better performance
+      .limit(100);
     
     res.json(notes);
   } catch (error) {
@@ -237,6 +381,21 @@ app.post('/api/notes', requireAuth, async (req, res) => {
     const note = new Note(noteData);
     await note.save();
     await note.populate('notebookId', 'name');
+    
+    // Real-time broadcast to all relevant sections
+    if (noteData.section === 'regular' || noteData.section === 'checklist') {
+      broadcastNotesUpdate(req.session.userId, noteData.section, noteData.notebookId);
+      // Also update notebook count
+      broadcastNotebookUpdate(req.session.userId, noteData.section);
+    } else if (noteData.section === 'locked') {
+      broadcastNotesUpdate(req.session.userId, 'locked');
+    }
+    
+    // Update favorites if note is favorited
+    if (noteData.isFavorite) {
+      broadcastNotesUpdate(req.session.userId, 'favorites');
+    }
+    
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -251,6 +410,23 @@ app.put('/api/notes/:id', requireAuth, async (req, res) => {
       { ...req.body, updatedAt: new Date() },
       { new: true }
     ).populate('notebookId', 'name');
+    
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
+    // Real-time broadcast
+    if (note.section === 'regular' || note.section === 'checklist') {
+      broadcastNotesUpdate(req.session.userId, note.section, note.notebookId?._id);
+    } else if (note.section === 'locked') {
+      broadcastNotesUpdate(req.session.userId, 'locked');
+    }
+    
+    // Update favorites if note is favorited
+    if (note.isFavorite) {
+      broadcastNotesUpdate(req.session.userId, 'favorites');
+    }
+    
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -260,7 +436,27 @@ app.put('/api/notes/:id', requireAuth, async (req, res) => {
 // Delete note
 app.delete('/api/notes/:id', requireAuth, async (req, res) => {
   try {
+    const note = await Note.findById(req.params.id);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
     await Note.findByIdAndDelete(req.params.id);
+    
+    // Real-time broadcast
+    if (note.section === 'regular' || note.section === 'checklist') {
+      broadcastNotesUpdate(req.session.userId, note.section, note.notebookId);
+      // Also update notebook count
+      broadcastNotebookUpdate(req.session.userId, note.section);
+    } else if (note.section === 'locked') {
+      broadcastNotesUpdate(req.session.userId, 'locked');
+    }
+    
+    // Update favorites if note was favorited
+    if (note.isFavorite) {
+      broadcastNotesUpdate(req.session.userId, 'favorites');
+    }
+    
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -271,10 +467,25 @@ app.delete('/api/notes/:id', requireAuth, async (req, res) => {
 app.post('/api/notes/:id/favorite', requireAuth, async (req, res) => {
   try {
     const note = await Note.findById(req.params.id);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
     note.isFavorite = !note.isFavorite;
     note.updatedAt = new Date();
     await note.save();
     await note.populate('notebookId', 'name');
+    
+    // Real-time broadcast to all relevant sections
+    if (note.section === 'regular' || note.section === 'checklist') {
+      broadcastNotesUpdate(req.session.userId, note.section, note.notebookId?._id);
+    } else if (note.section === 'locked') {
+      broadcastNotesUpdate(req.session.userId, 'locked');
+    }
+    
+    // Always update favorites
+    broadcastNotesUpdate(req.session.userId, 'favorites');
+    
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -327,8 +538,25 @@ app.get('/api/check-lock-setup', requireAuth, async (req, res) => {
 });
 
 // Check session
-app.get('/api/check-session', (req, res) => {
-  res.json({ authenticated: !!req.session.userId });
+app.get('/api/check-session', async (req, res) => {
+  if (req.session.userId) {
+    try {
+      const user = await User.findById(req.session.userId).select('username');
+      res.json({ 
+        authenticated: true, 
+        userId: req.session.userId,
+        username: user ? user.username : 'User'
+      });
+    } catch (error) {
+      res.json({ 
+        authenticated: true, 
+        userId: req.session.userId,
+        username: 'User'
+      });
+    }
+  } else {
+    res.json({ authenticated: false });
+  }
 });
 
 // Serve main page
@@ -336,6 +564,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 Open http://localhost:${PORT} in your browser`);
 });
