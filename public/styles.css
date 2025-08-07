@@ -141,6 +141,13 @@ html, body {
     min-height: 60px;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 120px;
+}
+
 .back-btn {
     background: none;
     border: none;
@@ -159,12 +166,27 @@ html, body {
     font-size: 24px;
 }
 
+.username-display {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
 #header-title {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     font-size: 1.2rem;
     font-weight: 500;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    min-width: 120px;
+    justify-content: flex-end;
 }
 
 .logout-btn {
@@ -174,6 +196,12 @@ html, body {
     cursor: pointer;
     padding: 0.5rem;
     font-size: 14px;
+    border-radius: 15px;
+    transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Main Content */
@@ -713,4 +741,56 @@ html, body {
     .bottom-nav {
         height: 70px;
     }
+
+    .header-left {
+        min-width: 100px;
+        gap: 0.5rem;
+    }
+    
+    .header-right {
+        min-width: 80px;
+    }
+    
+    .username-display {
+        font-size: 12px;
+    }
+    
+    .logout-btn {
+        font-size: 12px;
+        padding: 0.4rem;
+    }
+    
+    #header-title {
+        font-size: 1.1rem;
+    }
+}
+
+/* Performance optimizations for instant loading */
+* {
+    will-change: auto;
+}
+
+.note-item, .notebook-item, .checklist-item {
+    contain: layout style paint;
+    transform: translateZ(0);
+}
+
+/* Smooth instant animations */
+.note-item {
+    transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+.notebook-item {
+    transition: background-color 0.1s ease, transform 0.1s ease !important;
+}
+
+/* Instant loading skeleton with faster animation */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Reduce animation duration for faster perceived loading */
+.loading {
+    animation-duration: 0.8s !important;
 }
