@@ -155,23 +155,46 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-// Socket.IO connection handling
+// Socket.IO connection handling with enhanced real-time capabilities
 const userSockets = new Map(); // Track user sockets
+
+// Configure Socket.IO for ultra-fast real-time updates
+io.engine.pingTimeout = 10000; // Faster ping timeout
+io.engine.pingInterval = 5000; // More frequent pings
 
 io.on('connection', (socket) => {
   console.log('👤 User connected:', socket.id);
   
-  // Store user socket when authenticated
+  // Store user socket when authenticated with enhanced error handling
   socket.on('authenticate', (userId) => {
     if (userId) {
+      // Remove any existing socket for this user
+      const existingSocketId = userSockets.get(userId);
+      if (existingSocketId) {
+        const existingSocket = io.sockets.sockets.get(existingSocketId);
+        if (existingSocket) {
+          existingSocket.disconnect();
+        }
+      }
+      
+      // Set up new socket connection
       userSockets.set(userId, socket.id);
       socket.userId = userId;
+      
+      // Join a room specific to this user for targeted broadcasts
+      socket.join(`user_${userId}`);
+      
       console.log(`✅ User ${userId} authenticated with socket ${socket.id}`);
+      
+      // Initial sync
+      socket.emit('sync_required');
     }
   });
   
+  // Enhanced disconnect handling
   socket.on('disconnect', () => {
     if (socket.userId) {
+      socket.leave(`user_${socket.userId}`);
       userSockets.delete(socket.userId);
       console.log(`👋 User ${socket.userId} disconnected`);
     }
@@ -182,6 +205,10 @@ io.on('connection', (socket) => {
 const broadcastToUser = (userId, event, data) => {
   const socketId = userSockets.get(userId.toString());
   if (socketId) {
+    // Emit with volatile flag for ultra-fast updates
+    io.volatile.to(socketId).emit(event, data);
+    
+    // Also emit regular event as backup
     io.to(socketId).emit(event, data);
   }
 };
