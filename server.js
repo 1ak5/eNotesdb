@@ -434,12 +434,13 @@ app.put('/api/notes/:id', requireAuth, async (req, res) => {
     // Real-time broadcast
     if (note.section === 'regular' || note.section === 'checklist') {
       broadcastNotesUpdate(req.session.userId, note.section, note.notebookId?._id);
+      broadcastNotebookUpdate(req.session.userId, note.section); // Update notebook count
     } else if (note.section === 'locked') {
       broadcastNotesUpdate(req.session.userId, 'locked');
     }
     
-    // Update favorites if note is favorited
-    if (note.isFavorite) {
+    // Update favorites if note is favorited or was favorited before update
+    if (note.isFavorite || (req.body.isFavorite !== undefined && req.body.isFavorite !== note.isFavorite)) {
       broadcastNotesUpdate(req.session.userId, 'favorites');
     }
     
