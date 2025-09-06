@@ -64,52 +64,79 @@ class NotesApp {
 
         // INSTANT real-time updates - no delays
         this.socket.on('notebooks_updated', (data) => {
-            console.log('📚 INSTANT notebooks update:', data.section);
-            this.cache.notebooks[data.section] = data.notebooks;
-            this.cache.isLoaded[data.section] = true;
-            
-            // Update UI INSTANTLY if currently viewing this section
-            if (this.currentSection === data.section && this.currentView === 'notebooks') {
-                this.renderNotebooks(data.notebooks);
-            }
+            this.handleRealtimeUpdate('notebooks_updated', data);
         });
 
         this.socket.on('notes_updated', (data) => {
-            console.log('📝 INSTANT notes update:', data.section);
+            this.handleRealtimeUpdate('notes_updated', data);
+        });
+
+        this.socket.on('disconnect', () => {
+            console.log('❌ Real-time connection lost');
+        });
+    }
+
+    // Centralized real-time update handler
+    handleRealtimeUpdate(type, data) {
+        if (type === 'notebooks_updated') {
+            console.log('📚 Handling real-time notebooks update:', data.section);
+            this.cache.notebooks[data.section] = data.notebooks;
+            this.cache.isLoaded[data.section] = true;
             
-            // Update cache INSTANTLY
-            if (data.section === 'favorites') {
+            // Only re-render if the user is currently viewing this section
+            if (this.currentSection === data.section && this.currentView === 'notebooks') {
+                this.renderNotebooks(data.notebooks);
+                this.showRealTimeNotification(`Notebooks in ${data.section} updated!`);
+            }
+        } else if (type === 'notes_updated') {
+            console.log('📝 Handling real-time notes update:', data.section);
+            
+            // Update main notes cache if applicable
+            if (data.notebookId) {
+                const cacheKey = `${data.section}_${data.notebookId}`;
+                this.cache.notes[cacheKey] = data.notes;
+            } else if (data.section === 'favorites') {
                 this.cache.favorites = data.notes;
                 this.cache.isLoaded.favorites = true;
             } else if (data.section === 'locked') {
                 this.cache.locked = data.notes;
                 this.cache.isLoaded.locked = true;
-            } else {
-                const cacheKey = data.notebookId ? `${data.section}_${data.notebookId}` : data.section;
-                this.cache.notes[cacheKey] = data.notes;
             }
             
-            // Update UI INSTANTLY if currently viewing this section
+            // Re-render if the user is currently viewing the affected section
             if (this.currentSection === data.section) {
                 if (data.section === 'favorites' && this.currentView === 'notes') {
                     this.renderFavorites(data.notes);
+                    this.showRealTimeNotification('Favorites updated!');
                 } else if (data.section === 'locked' && this.currentView === 'notes' && this.isLockedUnlocked) {
                     this.renderLockedNotes(data.notes);
+                    this.showRealTimeNotification('Locked notes updated!');
                 } else if ((data.section === 'regular' || data.section === 'checklist') && 
-                      this.currentNotebook && this.currentNotebook._id === data.notebookId) {
-                if (data.section === 'checklist') {
-                    this.renderChecklistItems(data.notes);
-                } else {
-                    this.renderNotes(data.notes);
+                           this.currentNotebook && this.currentNotebook._id === data.notebookId) {
+                    if (data.section === 'checklist') {
+                        this.renderChecklistItems(data.notes);
+                        this.showRealTimeNotification('Checklist updated!');
+                    } else {
+                        this.renderNotes(data.notes);
+                        this.showRealTimeNotification('Notes updated!');
+                    }
                 }
             }
+            // Also update favorites if a note within a notebook was favorited/unfavorited
+            // This handles cases where user is in a regular notebook, and a note is favorited
+            if (data.section !== 'favorites' && this.currentSection === 'favorites' && this.currentView === 'notes') {
+                this.loadFavorites(); // Force reload favorites if currently viewing
+            }
+            
+            // This handles cases where user is in favorites, and a note is unfavorited
+            if (data.section === 'favorites' && this.currentSection !== 'favorites' && 
+                (this.currentSection === 'regular' || this.currentSection === 'checklist') && 
+                this.currentNotebook) {
+                // If a note in the current notebook was affected by a favorite change, reload that notebook's notes
+                this.loadNotes(); 
+            }
         }
-    });
-
-    this.socket.on('disconnect', () => {
-        console.log('❌ Real-time connection lost');
-    });
-}
+    }
 
     // Show real-time notification
     showRealTimeNotification(message) {
@@ -717,21 +744,6 @@ async backgroundPreload() {
     // Clear input INSTANTLY
     input.value = '';
     
-    // Add to UI INSTANTLY (optimistic update)
-    const tempNotebook = {
-        _id: 'temp_' + Date.now(),
-        name: name,
-        noteCount: 0,
-        createdAt: new Date()
-    };
-    
-    // Update cache and UI INSTANTLY
-    if (!this.cache.notebooks[this.currentSection]) {
-        this.cache.notebooks[this.currentSection] = [];
-    }
-    this.cache.notebooks[this.currentSection].unshift(tempNotebook);
-    this.renderNotebooks(this.cache.notebooks[this.currentSection]);
-    
     try {
         const response = await fetch('/api/notebooks', {
             method: 'POST',
@@ -739,49 +751,24 @@ async backgroundPreload() {
             body: JSON.stringify({ name, section: this.currentSection })
         });
         
-        if (response.ok) {
-            const realNotebook = await response.json();
-            // Replace temp with real data
-            const index = this.cache.notebooks[this.currentSection].findIndex(n => n._id === tempNotebook._id);
-            if (index !== -1) {
-                this.cache.notebooks[this.currentSection][index] = realNotebook;
-                this.renderNotebooks(this.cache.notebooks[this.currentSection]);
-            }
-        } else {
-            // Remove temp notebook if failed
-            this.cache.notebooks[this.currentSection] = this.cache.notebooks[this.currentSection].filter(n => n._id !== tempNotebook._id);
-            this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+        if (!response.ok) {
+            console.error('Failed to add notebook');
         }
     } catch (error) {
         console.error('Failed to add notebook:', error);
-        // Remove temp notebook if failed
-        this.cache.notebooks[this.currentSection] = this.cache.notebooks[this.currentSection].filter(n => n._id !== tempNotebook._id);
-        this.renderNotebooks(this.cache.notebooks[this.currentSection]);
     }
 }
 
     async deleteNotebook(id) {
     if (!confirm('Delete this notebook and all its notes?')) return;
     
-    // Remove from UI INSTANTLY (optimistic update)
-    if (this.cache.notebooks[this.currentSection]) {
-        const originalNotebooks = [...this.cache.notebooks[this.currentSection]];
-        this.cache.notebooks[this.currentSection] = this.cache.notebooks[this.currentSection].filter(n => n._id !== id);
-        this.renderNotebooks(this.cache.notebooks[this.currentSection]);
-        
-        try {
-            const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
-            if (!response.ok) {
-                // Restore if failed
-                this.cache.notebooks[this.currentSection] = originalNotebooks;
-                this.renderNotebooks(this.cache.notebooks[this.currentSection]);
-            }
-        } catch (error) {
-            console.error('Failed to delete notebook:', error);
-            // Restore if failed
-            this.cache.notebooks[this.currentSection] = originalNotebooks;
-            this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+    try {
+        const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            console.error('Failed to delete notebook');
         }
+    } catch (error) {
+        console.error('Failed to delete notebook:', error);
     }
 }
 
@@ -928,30 +915,10 @@ async backgroundPreload() {
     const content = input.value.trim();
     
     if (!content) return;
-    
+
     // Clear input INSTANTLY
     input.value = '';
-    
-    // Create temp note for instant UI update
-    const tempNote = {
-        _id: 'temp_' + Date.now(),
-        content: content,
-        section: this.currentSection,
-        notebookId: this.currentNotebook,
-        isFavorite: false,
-        isLocked: this.currentSection === 'locked',
-        createdAt: new Date(),
-        updatedAt: new Date()
-    };
-    
-    // Add to UI INSTANTLY
-    const cacheKey = this.currentNotebook ? `${this.currentSection}_${this.currentNotebook._id}` : this.currentSection;
-    if (!this.cache.notes[cacheKey]) {
-        this.cache.notes[cacheKey] = [];
-    }
-    this.cache.notes[cacheKey].unshift(tempNote);
-    this.renderNotes(this.cache.notes[cacheKey]);
-    
+
     try {
         const noteData = {
             content,
@@ -972,61 +939,22 @@ async backgroundPreload() {
             body: JSON.stringify(noteData)
         });
         
-        if (response.ok) {
-            const realNote = await response.json();
-            // Replace temp with real data
-            const index = this.cache.notes[cacheKey].findIndex(n => n._id === tempNote._id);
-            if (index !== -1) {
-                this.cache.notes[cacheKey][index] = realNote;
-                this.renderNotes(this.cache.notes[cacheKey]);
-            }
-        } else {
-            // Remove temp note if failed
-            this.cache.notes[cacheKey] = this.cache.notes[cacheKey].filter(n => n._id !== tempNote._id);
-            this.renderNotes(this.cache.notes[cacheKey]);
+        if (!response.ok) {
+            console.error('Failed to add note');
         }
     } catch (error) {
         console.error('Failed to add note:', error);
-        // Remove temp note if failed
-        this.cache.notes[cacheKey] = this.cache.notes[cacheKey].filter(n => n._id !== tempNote._id);
-        this.renderNotes(this.cache.notes[cacheKey]);
     }
 }
 
     async deleteNote(id) {
     if (!confirm('Delete this note?')) return;
-    
-    // Remove from UI INSTANTLY
-    const noteItem = document.querySelector(`[data-note-id="${id}"]`);
-    if (noteItem) {
-        noteItem.style.opacity = '0.5';
-        noteItem.style.transform = 'scale(0.95)';
-        setTimeout(() => noteItem.remove(), 150);
-    }
-    
-    // Update cache INSTANTLY
-    Object.keys(this.cache.notes).forEach(cacheKey => {
-        if (this.cache.notes[cacheKey]) {
-            this.cache.notes[cacheKey] = this.cache.notes[cacheKey].filter(n => n._id !== id);
-        }
-    });
-    
-    // Update favorites cache
-    if (this.cache.favorites) {
-        this.cache.favorites = this.cache.favorites.filter(n => n._id !== id);
-    }
-    
-    // Update locked cache
-    if (this.cache.locked) {
-        this.cache.locked = this.cache.locked.filter(n => n._id !== id);
-    }
-    
+
     try {
         await fetch(`/api/notes/${id}`, { method: 'DELETE' });
         console.log('✅ Note deleted successfully');
     } catch (error) {
         console.error('Failed to delete note:', error);
-        // Could add rollback logic here if needed
     }
 }
 
@@ -1079,17 +1007,6 @@ async backgroundPreload() {
 
     // INSTANT checklist toggle with real-time UI update
     async toggleChecklistItemInstant(id, checked) {
-        // Update UI INSTANTLY
-        const item = document.querySelector(`[data-item-id="${id}"]`);
-        if (item) {
-            if (checked) {
-                item.classList.add('completed');
-            } else {
-                item.classList.remove('completed');
-            }
-        }
-        
-        // Update server - real-time will handle other users
         try {
             await fetch(`/api/notes/${id}`, {
                 method: 'PUT',
@@ -1098,14 +1015,6 @@ async backgroundPreload() {
             });
         } catch (error) {
             console.error('Failed to toggle checklist item:', error);
-            // Revert UI change if failed
-            if (item) {
-                if (checked) {
-                    item.classList.remove('completed');
-                } else {
-                    item.classList.add('completed');
-                }
-            }
         }
     }
 
@@ -1466,42 +1375,15 @@ async backgroundPreload() {
 
     // INSTANT favorite toggle with real-time UI update
     async toggleFavoriteInstant(id) {
-        // Find the button and update UI INSTANTLY
-        const noteItem = document.querySelector(`[data-note-id="${id}"]`);
-        const button = noteItem?.querySelector('.favorite-btn');
-        
-        if (button) {
-            const isActive = button.classList.contains('active');
-            const icon = button.querySelector('.material-icons');
-            
-            // Update UI INSTANTLY
-            icon.textContent = isActive ? 'star_border' : 'star';
-            button.classList.toggle('active');
-        }
-        
-        // Update server - real-time will handle other users
         try {
             const response = await fetch(`/api/notes/${id}/favorite`, { method: 'POST' });
             if (!response.ok) {
-                // Revert UI change if request failed
-                if (button) {
-                    const isActive = button.classList.contains('active');
-                    const icon = button.querySelector('.material-icons');
-                    icon.textContent = isActive ? 'star_border' : 'star';
-                    button.classList.toggle('active');
-                }
+                console.error('Failed to toggle favorite');
             } else {
                 console.log('✅ Favorite toggled - real-time update will refresh other sections');
             }
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
-            // Revert UI change if request failed
-            if (button) {
-                const isActive = button.classList.contains('active');
-                const icon = button.querySelector('.material-icons');
-                icon.textContent = isActive ? 'star_border' : 'star';
-                button.classList.toggle('active');
-            }
         }
     }
 
@@ -1517,14 +1399,7 @@ async backgroundPreload() {
         
         const content = document.getElementById('edit-textarea').value.trim();
         if (!content) return;
-        
-        // Update UI INSTANTLY
-        const noteItem = document.querySelector(`[data-note-id="${this.editingNote}"]`);
-        const noteContent = noteItem?.querySelector('.note-content');
-        if (noteContent) {
-            noteContent.innerHTML = this.escapeHtml(content);
-        }
-        
+
         // Close modal INSTANTLY
         this.cancelEdit();
         
