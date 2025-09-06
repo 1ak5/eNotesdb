@@ -237,7 +237,7 @@ app.post('/api/register', async (req, res) => {
     }
 
     const hashedPin = await bcrypt.hash(pin, 10);
-    const user = new User({ username, pin});
+    const user = new User({ username, pin: hashedPin });
     await user.save();
 
     req.session.userId = user._id;
@@ -257,7 +257,23 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    const isValidPin = await bcrypt.compare(pin, user.pin);
+    let isValidPin = false;
+    // Check if the stored pin is likely unhashed (e.g., if it's not a bcrypt hash)
+    // bcrypt hashes typically start with $2a$, $2b$, or $2y$
+    if (user.pin && !user.pin.startsWith('$2')) {
+      // Likely an unhashed pin, compare directly
+      isValidPin = (pin === user.pin);
+      if (isValidPin) {
+        // Hash and update the pin for future logins
+        const hashedPin = await bcrypt.hash(pin, 10);
+        user.pin = hashedPin;
+        await user.save();
+      }
+    } else {
+      // Hashed pin, compare using bcrypt
+      isValidPin = await bcrypt.compare(pin, user.pin);
+    }
+
     if (!isValidPin) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -495,11 +511,13 @@ app.post('/api/notes/:id/favorite', requireAuth, async (req, res) => {
 // Add route to set lock password
 app.post('/api/set-lock-password', requireAuth, async (req, res) => {
   try {
-       const { password } = req.body;
+    const { password } = req.body;
+
+    const hashedLockPassword = await bcrypt.hash(password, 10);
 
     await UserSettings.findOneAndUpdate(
       { userId: req.session.userId },
-      { lockPassword: password }, // plain text password stored
+      { lockPassword: hashedLockPassword },
       { upsert: true }
     );
     
