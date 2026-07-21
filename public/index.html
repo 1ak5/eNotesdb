@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eNotes - Real-time</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="auth-screen" class="screen">
+        <div class="auth-container">
+            <h1>eNotes</h1>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+            
+            <form id="login-form" class="auth-form">
+                <input type="text" id="login-username" placeholder="Username" required>
+                <input type="password" id="login-pin" placeholder="PIN" required>
+                <button type="submit">Login</button>
+            </form>
+            
+            <form id="register-form" class="auth-form hidden">
+                <input type="text" id="register-username" placeholder="Username" required>
+                <input type="password" id="register-pin" placeholder="PIN" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="app-screen" class="screen hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button id="back-btn" class="back-btn hidden">
+                    <i class="material-icons">arrow_back</i>
+                </button>
+                <span id="username-display" class="username-display">Hi User</span>
+            </div>
+            <h1 id="header-title">eNotes</h1>
+            <div class="header-right">
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Notebooks View -->
+            <div id="notebooks-view" class="view">
+                <div class="add-section">
+                    <input type="text" id="notebook-input" placeholder="Create new notebook...">
+                    <button id="add-notebook-btn">Add</button>
+                </div>
+                <div id="notebooks-list" class="notebooks-list"></div>
+            </div>
+
+            <!-- Notes View -->
+            <div id="notes-view" class="view hidden">
+                <div class="add-section">
+                    <input type="text" id="note-input" placeholder="Add a note...">
+                    <button id="add-note-btn">Add</button>
+                </div>
+                <div id="notes-list" class="notes-list"></div>
+            </div>
+
+            <!-- Checklist Items View -->
+            <div id="checklist-view" class="view hidden">
+                <div class="add-section">
+                    <input type="text" id="checklist-input" placeholder="Add new item...">
+                    <button id="add-checklist-btn">Add</button>
+                </div>
+                <div id="checklist-list" class="checklist-list"></div>
+            </div>
+
+            <!-- Locked Section -->
+            <div id="locked-view" class="view hidden">
+                <div class="locked-container">
+                    <div class="lock-icon">
+                        <i class="material-icons">lock</i>
+                    </div>
+                    <h2>This section is locked</h2>
+                    <p>Please enter your password to unlock</p>
+                    <input type="password" id="unlock-password" placeholder="Password" autocomplete="new-password" data-lpignore="true">
+                    <button id="unlock-btn">Unlock</button>
+                </div>
+                <div id="locked-notes" class="notes-list hidden"></div>
+            </div>
+
+            <!-- Favorites View -->
+            <div id="favorites-view" class="view hidden">
+                <div class="favorites-header">
+                    <div class="star-icon">
+                        <i class="material-icons">star_border</i>
+                    </div>
+                    <h2>Favorites</h2>
+                    <p id="favorites-count">0 starred notes</p>
+                </div>
+                <div id="favorites-list" class="notes-list"></div>
+            </div>
+
+            <!-- Images View -->
+            <div id="images-view" class="view hidden">
+                <div class="images-toolbar">
+                    <div class="images-tab-toggle">
+                        <button class="images-tab active" data-imgtab="regular">Regular</button>
+                        <button class="images-tab" data-imgtab="locked"><i class="material-icons" style="font-size:14px">lock</i> Locked</button>
+                    </div>
+                    <button id="add-image-btn" class="add-image-btn">
+                        <i class="material-icons">add_photo_alternate</i> Add
+                    </button>
+                </div>
+                <input type="file" id="image-file-input" accept="image/*" style="display:none">
+                <div id="images-upload-progress" class="upload-progress hidden">
+                    <div class="upload-bar"></div>
+                    <span>Uploading...</span>
+                </div>
+                <div id="images-grid" class="images-grid"></div>
+                <div id="images-empty" class="images-empty">
+                    <i class="material-icons">image</i>
+                    <h3>No images yet</h3>
+                    <p>Tap Add to upload images</p>
+                </div>
+            </div>
+
+            <!-- Locked Images Password Gate -->
+            <div id="locked-images-gate" class="view hidden">
+                <div class="locked-container">
+                    <div class="lock-icon">
+                        <i class="material-icons">lock</i>
+                    </div>
+                    <h2>Locked Images</h2>
+                    <p>Enter your password to access locked images</p>
+                    <input type="password" id="unlock-images-password" placeholder="Password" autocomplete="new-password" data-lpignore="true">
+                    <button id="unlock-images-btn">Unlock</button>
+                </div>
+                <div id="locked-images-grid" class="images-grid hidden"></div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-section="regular">
+                <span class="nav-icon">
+                    <i class="material-icons">description</i>
+                </span>
+                <span class="nav-label">Regular</span>
+            </button>
+            <button class="nav-btn" data-section="checklist">
+                <span class="nav-icon">
+                    <i class="material-icons">checklist</i>
+                </span>
+                <span class="nav-label">Checklist</span>
+            </button>
+            <button class="nav-btn" data-section="locked">
+                <span class="nav-icon">
+                    <i class="material-icons">lock</i>
+                </span>
+                <span class="nav-label">Locked</span>
+            </button>
+            <button class="nav-btn" data-section="images">
+                <span class="nav-icon">
+                    <i class="material-icons">image</i>
+                </span>
+                <span class="nav-label">Images</span>
+            </button>
+            <button class="nav-btn" data-section="favorites">
+                <span class="nav-icon">
+                    <i class="material-icons">star</i>
+                </span>
+                <span class="nav-label">Favorites</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Edit Note</h3>
+            <textarea id="edit-textarea" placeholder="Enter your note..."></textarea>
+            <div class="modal-actions">
+                <button id="save-edit-btn">Save</button>
+                <button id="cancel-edit-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-modal" class="modal hidden">
+        <div class="image-modal-content">
+            <img id="image-modal-img" src="" alt="">
+            <div class="image-modal-actions">
+                <button id="image-pin-btn" title="Pin"><i class="material-icons">push_pin</i></button>
+                <button id="image-lock-btn" title="Lock/Unlock"><i class="material-icons">lock</i></button>
+                <button id="image-delete-btn" title="Delete"><i class="material-icons">delete</i></button>
+                <button id="image-close-btn" title="Close"><i class="material-icons">close</i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
