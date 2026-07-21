@@ -471,6 +471,81 @@ async backgroundPreload() {
         document.getElementById('unlock-password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.unlockSection();
         });
+
+        // ===== IMAGE EVENTS =====
+        const addImageBtn = document.getElementById('add-image-btn');
+        if (addImageBtn) {
+            addImageBtn.addEventListener('click', () => {
+                document.getElementById('image-file-input').click();
+            });
+        }
+        const imageFileInput = document.getElementById('image-file-input');
+        if (imageFileInput) {
+            imageFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const activeTab = document.querySelector('.images-tab.active');
+                    const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+                    this.uploadImage(file, section);
+                    e.target.value = '';
+                }
+            });
+        }
+        document.querySelectorAll('.images-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.images-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const section = tab.dataset.imgtab;
+                if (section === 'locked') {
+                    this.showImageLockGate();
+                } else {
+                    this.loadImages('regular');
+                }
+            });
+        });
+        const unlockImagesBtn = document.getElementById('unlock-images-btn');
+        if (unlockImagesBtn) {
+            unlockImagesBtn.addEventListener('click', () => this.verifyImageLock());
+        }
+        const unlockImagesPw = document.getElementById('unlock-images-password');
+        if (unlockImagesPw) {
+            unlockImagesPw.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.verifyImageLock();
+            });
+        }
+        const imageModal = document.getElementById('image-modal');
+        if (imageModal) {
+            imageModal.addEventListener('click', (e) => {
+                if (e.target === imageModal) this.closeImageModal();
+            });
+        }
+        const imagePinBtn = document.getElementById('image-pin-btn');
+        if (imagePinBtn) {
+            imagePinBtn.addEventListener('click', () => {
+                const modal = document.getElementById('image-modal');
+                this.toggleImagePin(modal.dataset.imageId);
+            });
+        }
+        const imageLockBtn = document.getElementById('image-lock-btn');
+        if (imageLockBtn) {
+            imageLockBtn.addEventListener('click', () => {
+                const modal = document.getElementById('image-modal');
+                this.toggleImageLock(modal.dataset.imageId);
+                this.closeImageModal();
+            });
+        }
+        const imageDeleteBtn = document.getElementById('image-delete-btn');
+        if (imageDeleteBtn) {
+            imageDeleteBtn.addEventListener('click', () => {
+                const modal = document.getElementById('image-modal');
+                this.deleteImage(modal.dataset.imageId);
+                this.closeImageModal();
+            });
+        }
+        const imageCloseModalBtn = document.getElementById('image-close-btn');
+        if (imageCloseModalBtn) {
+            imageCloseModalBtn.addEventListener('click', () => this.closeImageModal());
+        }
     }
 
     showAuth() {
@@ -1542,6 +1617,61 @@ async backgroundPreload() {
         document.getElementById('edit-textarea').value = '';
     }
 
+  // ===== IMAGE LOCK GATE METHODS =====
+  async showImageLockGate() {
+    const gate = document.getElementById('locked-images-gate');
+    const grid = document.getElementById('locked-images-grid');
+    const regularGrid = document.getElementById('images-grid');
+    const empty = document.getElementById('images-empty');
+    if (regularGrid) regularGrid.classList.add('hidden');
+    if (empty) empty.style.display = 'none';
+    if (grid) grid.classList.add('hidden');
+    try {
+      const res = await fetch('/api/check-lock-setup', { credentials: 'include' });
+      const data = await res.json();
+      if (!data.hasPassword) {
+        gate.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Set up password</h2><p>Set a password to protect your locked images</p><input type="password" id="setup-images-password" placeholder="Enter new password"><button id="setup-images-btn">Set Password</button>';
+        document.getElementById('setup-images-btn').addEventListener('click', () => this.setupImageLockPassword());
+        document.getElementById('setup-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.setupImageLockPassword(); });
+      } else {
+        gate.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Locked Images</h2><p>Enter your password to view locked images</p><input type="password" id="unlock-images-password" placeholder="Password"><button id="unlock-images-btn">Unlock</button>';
+        document.getElementById('unlock-images-btn').addEventListener('click', () => this.verifyImageLock());
+        document.getElementById('unlock-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.verifyImageLock(); });
+      }
+      gate.classList.remove('hidden');
+    } catch (e) { console.error('Error checking lock setup:', e); }
+  }
+
+  async setupImageLockPassword() {
+    const pw = document.getElementById('setup-images-password');
+    if (!pw || !pw.value) { alert('Please enter a password'); return; }
+    try {
+      const res = await fetch('/api/set-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
+      if (res.ok) {
+        document.getElementById('locked-images-gate').classList.add('hidden');
+        document.getElementById('locked-images-grid').classList.remove('hidden');
+        this.loadImages('locked');
+      }
+    } catch (e) { console.error('Setup lock password error:', e); }
+  }
+
+  async verifyImageLock() {
+    const pw = document.getElementById('unlock-images-password');
+    if (!pw || !pw.value) return;
+    try {
+      const res = await fetch('/api/verify-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('locked-images-gate').classList.add('hidden');
+        document.getElementById('locked-images-grid').classList.remove('hidden');
+        this.loadImages('locked');
+      } else {
+        alert('Incorrect password');
+        pw.value = '';
+      }
+    } catch (e) { console.error('Verify image lock error:', e); }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // IMAGES - Cloudinary Integration
   // ═══════════════════════════════════════════════════════════
@@ -1711,18 +1841,7 @@ async backgroundPreload() {
     } catch (e) { return false; }
   }
 
-  async verifyImageLockPassword(password) {
-    try {
-      const res = await fetch('/api/verify-lock-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ password })
-      });
-      const data = await res.json();
-      return data.success;
-    } catch (e) { return false; }
-  }
+    }
 
 }
 
