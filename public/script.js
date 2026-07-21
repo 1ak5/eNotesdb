@@ -44,6 +44,25 @@ class NotesApp {
         await this.checkSessionAndLoadInitial();
     }
 
+    // Fetch Cloudinary config from server
+    async fetchCloudinaryConfig() {
+        try {
+            const res = await fetch('/api/config', { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                this.cloudinaryConfig = {
+                    cloudName: data.cloudName || 'szokpp2i',
+                    uploadPreset: data.uploadPreset || 'enotes_unsigned'
+                };
+                console.log('Cloudinary config loaded from server');
+            } else {
+                console.warn('Cloudinary config endpoint returned', res.status, '- uploads may use defaults');
+            }
+        } catch (e) {
+            console.warn('Could not fetch Cloudinary config:', e.message, '- uploads may use defaults');
+        }
+    }
+
     // Enhanced WebSocket connection with ultra-fast updates
     initializeSocket() {
         if (this.socket) {
@@ -78,6 +97,16 @@ class NotesApp {
         this.socket.on('notes_updated', (data) => {
             requestAnimationFrame(() => {
                 this.handleRealtimeUpdate('notes_updated', data);
+            });
+        });
+
+        // Handle images updated in real-time
+        this.socket.on('images_updated', (data) => {
+            requestAnimationFrame(() => {
+                if (this.currentView === 'images') {
+                    this.loadImages('regular');
+                    this.loadImages('locked');
+                }
             });
         });
 
