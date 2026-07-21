@@ -763,6 +763,9 @@ async backgroundPreload() {
         }
     } else if (section === 'locked') {
         this.showLockedSectionWithCache();
+    } else if (section === 'images') {
+        this.showOptimizedLoading('images-grid', 'Loading images...');
+        this.loadImages('regular');
     }
 }
 
@@ -783,6 +786,8 @@ async backgroundPreload() {
             document.getElementById('locked-view').classList.remove('hidden');
         } else if (this.currentSection === 'favorites') {
             document.getElementById('favorites-view').classList.remove('hidden');
+        } else if (this.currentSection === 'images') {
+            document.getElementById('images-view').classList.remove('hidden');
         }
     }
 
