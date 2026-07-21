@@ -485,7 +485,6 @@ app.get('/api/config', requireAuth, (req, res) => {
     uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'enotes_unsigned'
   });
 });
-});
 
 // ─── SERVE ──────────────────────────────────────────────
 
