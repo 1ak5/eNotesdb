@@ -477,6 +477,16 @@ app.get('/api/check-lock-setup', requireAuth, async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+
+// ─── CLOUDINARY CONFIG ────────────────────────────────────
+app.get('/api/config', requireAuth, (req, res) => {
+  res.json({
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'szokpp2i',
+    uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'enotes_unsigned'
+  });
+});
+});
+
 // ─── SERVE ──────────────────────────────────────────────
 
 app.get('/', (req, res) => {

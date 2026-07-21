@@ -4,6 +4,7 @@ class NotesApp {
         this.currentNotebook = null;
         this.currentView = 'notebooks';
         this.isLockedUnlocked = false;
+        this.cloudinaryConfig = { cloudName: 'szokpp2i', uploadPreset: 'enotes_unsigned' };
         this.editingNote = null;
         this.lockPasswordSet = false;
         this.userId = null;
@@ -38,6 +39,7 @@ class NotesApp {
     }
 
     async init() {
+        await this.fetchCloudinaryConfig();
         this.bindEvents();
         await this.checkSessionAndLoadInitial();
     }
@@ -1566,9 +1568,9 @@ async backgroundPreload() {
       // Upload to Cloudinary
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'enotes_unsigned');
+      formData.append('upload_preset', this.cloudinaryConfig.uploadPreset);
 
-      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/szokpp2i/image/upload', {
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${this.cloudinaryConfig.cloudName}/image/upload`, {
         method: 'POST',
         body: formData
       });
