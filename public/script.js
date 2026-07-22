@@ -1347,11 +1347,7 @@ async backgroundPreload() {
                 body: JSON.stringify({ password })
             });
             
-            if (response.ok) {
-                body: JSON.stringify({ password })
-            };
-            
-            if (response.ok) {
+if (response.ok) {
                 this.lockPasswordSet = true;
                 this.isLockedUnlocked = true;
                 document.querySelector('.locked-container').classList.add('hidden');
@@ -1637,6 +1633,7 @@ async backgroundPreload() {
 
   // ===== IMAGE LOCK GATE METHODS =====
   async showImageLockGate() {
+    const lockUi = document.getElementById("locked-images-lock-ui");
     const gate = document.getElementById('locked-images-gate');
     const grid = document.getElementById('locked-images-grid');
     const regularGrid = document.getElementById('images-grid');
@@ -1697,6 +1694,7 @@ async backgroundPreload() {
   // ═══════════════════════════════════════════════════════════
 
   async loadImages(section = 'regular') {
+    const gate = document.getElementById('locked-images-gate');
     const grid = document.getElementById('images-grid');
     const empty = document.getElementById('images-empty');
     const lockedGrid = document.getElementById('locked-images-grid');
