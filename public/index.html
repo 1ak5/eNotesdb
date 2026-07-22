@@ -124,23 +124,30 @@
                     <h3>No images yet</h3>
                     <p>Tap Add to upload images</p>
                 </div>
+                <!-- Locked Images Password Gate (inside images-view) -->
+                <div id="locked-images-gate" class="images-sub-section hidden">
+                    <div id="locked-images-lock-ui">
+                        <div class="locked-container">
+                            <div class="lock-icon">
+                                <i class="material-icons">lock</i>
+                            </div>
+                            <h2>Locked Images</h2>
+                            <p>Enter your password to access locked images</p>
+                            <input type="password" id="unlock-images-password" placeholder="Password" autocomplete="new-password" data-lpignore="true">
+                            <button id="unlock-images-btn">Unlock</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Locked Images Grid -->
+                <div id="locked-images-grid" class="images-grid hidden"></div>
+                <div id="locked-images-empty" class="images-empty hidden">
+                    <i class="material-icons">lock</i>
+                    <h3>No locked images yet</h3>
+                    <p>Lock images to keep them private</p>
+                </div>
             </div>
 
-            <!-- Locked Images Password Gate (inside images-view) -->
-            <div id="locked-images-gate" class="images-sub-section hidden"><div id="locked-images-lock-ui">
-                
-                <div class="locked-container">
-                    <div class="lock-icon">
-                        <i class="material-icons">lock</i>
-                    </div>
-                    <h2>Locked Images</h2>
-                    <p>Enter your password to access locked images</p>
-                    <input type="password" id="unlock-images-password" placeholder="Password" autocomplete="new-password" data-lpignore="true">
-                    <button id="unlock-images-btn">Unlock</button>
-            </div>
-                </div>
-                <div id="locked-images-grid" class="images-grid hidden"></div>
-            </div>
+            
 
             
         </main>

@@ -911,6 +911,19 @@ html, body {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
   }
+  .images-toolbar { flex-wrap: wrap; }
+  .add-image-btn { padding: 8px 14px; font-size: 12px; }
+  #locked-images-lock-ui .locked-container { padding: 2rem 1.5rem; }
+  .image-card { border-radius: 10px; }
+}
+
+@media (min-width: 768px) {
+  .images-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  #locked-images-lock-ui { max-width: 420px; }
+}
+
+@media (min-width: 1024px) {
+  .images-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 .image-card {
@@ -1037,20 +1050,7 @@ html, body {
   color: #89999A;
 }
 
-/* Images sub-section toggle */
-.images-sub-section {
-  padding-top: 1rem;
-}
 
-.images-sub-section .locked-container {
-  height: auto;
-  min-height: 30vh;
-  padding: 2rem 0;
-}
-
-.images-sub-section .images-grid {
-  margin-top: 1rem;
-}
 
 /* Image Modal */
 .image-modal-content {
