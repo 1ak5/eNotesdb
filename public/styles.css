@@ -1052,6 +1052,136 @@ html, body {
 
 
 
+/* LOCKED IMAGES GATE (inside images-view) */
+
+.images-sub-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  min-height: 50vh;
+}
+
+#locked-images-lock-ui {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#locked-images-lock-ui .locked-container {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 2rem;
+  background: #F5F0EB;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+#locked-images-lock-ui .lock-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #CDACA1, #89999A);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+
+#locked-images-lock-ui .lock-icon .material-icons {
+  font-size: 32px;
+  color: white;
+}
+
+#locked-images-lock-ui .locked-container h2 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+#locked-images-lock-ui .locked-container p {
+  color: #89999A;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+#locked-images-lock-ui .locked-container input {
+  padding: 14px 18px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: #ECE4D7;
+  font-size: 15px;
+  outline: none;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 280px;
+  color: #333;
+  transition: border-color 0.2s ease;
+}
+
+#locked-images-lock-ui .locked-container input:focus {
+  border-color: #CDACA1;
+}
+
+#locked-images-lock-ui .locked-container input::placeholder {
+  color: #aaa;
+}
+
+#locked-images-lock-ui .locked-container button {
+  padding: 14px 36px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #CDACA1, #b89a8f);
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(205, 172, 161, 0.4);
+}
+
+#locked-images-lock-ui .locked-container button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(205, 172, 161, 0.5);
+}
+
+#locked-images-lock-ui .locked-container button:active {
+  transform: translateY(0);
+}
+
+#locked-images-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #89999A;
+}
+
+#locked-images-empty .material-icons {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #89999A;
+}
+
+#locked-images-empty h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+#locked-images-empty p {
+  color: #89999A;
+}
+
 /* Image Modal */
 .image-modal-content {
   position: relative;
