@@ -1843,7 +1843,6 @@ async backgroundPreload() {
 
     }
 
-}
 
 // Initialize app
 const app = new NotesApp();
