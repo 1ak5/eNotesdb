@@ -104,7 +104,14 @@ class NotesApp {
         this.socket.on('images_updated', (data) => {
             requestAnimationFrame(() => {
                 if (this.currentView === 'images') {
-                    this.loadImages('regular');
+                    // Hide locked gate, show regular content
+              const gate2 = document.getElementById('locked-images-gate');
+              const lockedGrid2 = document.getElementById('locked-images-grid');
+              const grid2 = document.getElementById('images-grid');
+              if (gate2) gate2.classList.add('hidden');
+              if (lockedGrid2) lockedGrid2.classList.add('hidden');
+              if (grid2) grid2.classList.remove('hidden');
+              this.loadImages('regular');
                     this.loadImages('locked');
                 }
             });
@@ -499,7 +506,14 @@ async backgroundPreload() {
                 if (section === 'locked') {
                     this.showImageLockGate();
                 } else {
-                    this.loadImages('regular');
+                    // Hide locked gate, show regular
+              const gateEl = document.getElementById('locked-images-gate');
+              const lockedGridEl = document.getElementById('locked-images-grid');
+              const regularGridEl = document.getElementById('images-grid');
+              if (gateEl) gateEl.classList.add('hidden');
+              if (lockedGridEl) lockedGridEl.classList.add('hidden');
+              if (regularGridEl) regularGridEl.classList.remove('hidden');
+              this.loadImages('regular');
                 }
             });
         });
@@ -839,6 +853,10 @@ async backgroundPreload() {
     } else if (section === 'locked') {
         this.showLockedSectionWithCache();
     } else if (section === 'images') {
+        // Reset image tabs to regular
+        document.querySelectorAll('.images-tab').forEach(t => t.classList.remove('active'));
+        const rt = document.querySelector('.images-tab[data-imgtab="regular"]');
+        if (rt) rt.classList.add('active');
         this.showOptimizedLoading('images-grid', 'Loading images...');
         this.loadImages('regular');
     }
@@ -1630,11 +1648,11 @@ async backgroundPreload() {
       const res = await fetch('/api/check-lock-setup', { credentials: 'include' });
       const data = await res.json();
       if (!data.hasPassword) {
-        gate.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Set up password</h2><p>Set a password to protect your locked images</p><input type="password" id="setup-images-password" placeholder="Enter new password"><button id="setup-images-btn">Set Password</button>';
+        lockUi.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Set up password</h2><p>Set a password to protect your locked images</p><input type="password" id="setup-images-password" placeholder="Enter new password"><button id="setup-images-btn">Set Password</button>';
         document.getElementById('setup-images-btn').addEventListener('click', () => this.setupImageLockPassword());
         document.getElementById('setup-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.setupImageLockPassword(); });
       } else {
-        gate.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Locked Images</h2><p>Enter your password to view locked images</p><input type="password" id="unlock-images-password" placeholder="Password"><button id="unlock-images-btn">Unlock</button>';
+        lockUi.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Locked Images</h2><p>Enter your password to view locked images</p><input type="password" id="unlock-images-password" placeholder="Password"><button id="unlock-images-btn">Unlock</button>';
         document.getElementById('unlock-images-btn').addEventListener('click', () => this.verifyImageLock());
         document.getElementById('unlock-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.verifyImageLock(); });
       }
@@ -1648,7 +1666,8 @@ async backgroundPreload() {
     try {
       const res = await fetch('/api/set-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
       if (res.ok) {
-        document.getElementById('locked-images-gate').classList.add('hidden');
+        const lockUi = document.getElementById('locked-images-lock-ui');
+        if (lockUi) lockUi.classList.add('hidden');
         document.getElementById('locked-images-grid').classList.remove('hidden');
         this.loadImages('locked');
       }
@@ -1662,7 +1681,8 @@ async backgroundPreload() {
       const res = await fetch('/api/verify-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
       const data = await res.json();
       if (data.success) {
-        document.getElementById('locked-images-gate').classList.add('hidden');
+        const lockUi = document.getElementById('locked-images-lock-ui');
+        if (lockUi) lockUi.classList.add('hidden');
         document.getElementById('locked-images-grid').classList.remove('hidden');
         this.loadImages('locked');
       } else {
@@ -1682,11 +1702,16 @@ async backgroundPreload() {
     const lockedGrid = document.getElementById('locked-images-grid');
 
     if (section === 'locked') {
-      grid.classList.add('hidden');
+      // Show locked sub-section, hide regular content
+      if (gate) gate.classList.remove('hidden');
+      if (grid) grid.classList.add('hidden');
+      if (empty) empty.style.display = 'none';
       if (lockedGrid) lockedGrid.classList.remove('hidden');
     } else {
+      // Show regular content, hide locked sub-section
+      if (gate) gate.classList.add('hidden');
       if (lockedGrid) lockedGrid.classList.add('hidden');
-      grid.classList.remove('hidden');
+      if (grid) grid.classList.remove('hidden');
     }
 
     try {

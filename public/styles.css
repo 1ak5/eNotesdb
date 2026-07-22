@@ -1037,6 +1037,21 @@ html, body {
   color: #89999A;
 }
 
+/* Images sub-section toggle */
+.images-sub-section {
+  padding-top: 1rem;
+}
+
+.images-sub-section .locked-container {
+  height: auto;
+  min-height: 30vh;
+  padding: 2rem 0;
+}
+
+.images-sub-section .images-grid {
+  margin-top: 1rem;
+}
+
 /* Image Modal */
 .image-modal-content {
   position: relative;
