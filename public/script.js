@@ -4,6 +4,7 @@ class NotesApp {
         this.currentNotebook = null;
         this.currentView = 'notebooks';
         this.isLockedUnlocked = false;
+        this.isLockedImagesUnlocked = false;
         this.cloudinaryConfig = { cloudName: 'szokpp2i', uploadPreset: 'enotes_unsigned' };
         this.editingNote = null;
         this.lockPasswordSet = false;
@@ -504,16 +505,26 @@ async backgroundPreload() {
                 tab.classList.add('active');
                 const section = tab.dataset.imgtab;
                 if (section === 'locked') {
-                    this.showImageLockGate();
+                    if (this.isLockedImagesUnlocked) {
+                        const gateEl = document.getElementById('locked-images-gate');
+                        const lockedGridEl = document.getElementById('locked-images-grid');
+                        const regularGridEl = document.getElementById('images-grid');
+                        if (gateEl) gateEl.classList.add('hidden');
+                        if (lockedGridEl) lockedGridEl.classList.remove('hidden');
+                        if (regularGridEl) regularGridEl.classList.add('hidden');
+                        this.loadImages('locked');
+                    } else {
+                        this.showImageLockGate();
+                    }
                 } else {
                     // Hide locked gate, show regular
-              const gateEl = document.getElementById('locked-images-gate');
-              const lockedGridEl = document.getElementById('locked-images-grid');
-              const regularGridEl = document.getElementById('images-grid');
-              if (gateEl) gateEl.classList.add('hidden');
-              if (lockedGridEl) lockedGridEl.classList.add('hidden');
-              if (regularGridEl) regularGridEl.classList.remove('hidden');
-              this.loadImages('regular');
+                    const gateEl = document.getElementById('locked-images-gate');
+                    const lockedGridEl = document.getElementById('locked-images-grid');
+                    const regularGridEl = document.getElementById('images-grid');
+                    if (gateEl) gateEl.classList.add('hidden');
+                    if (lockedGridEl) lockedGridEl.classList.add('hidden');
+                    if (regularGridEl) regularGridEl.classList.remove('hidden');
+                    this.loadImages('regular');
                 }
             });
         });
@@ -1663,6 +1674,9 @@ if (response.ok) {
     try {
       const res = await fetch('/api/set-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
       if (res.ok) {
+        this.isLockedImagesUnlocked = true;
+        const gate = document.getElementById('locked-images-gate');
+        if (gate) gate.classList.add('hidden');
         const lockUi = document.getElementById('locked-images-lock-ui');
         if (lockUi) lockUi.classList.add('hidden');
         document.getElementById('locked-images-grid').classList.remove('hidden');
@@ -1678,6 +1692,9 @@ if (response.ok) {
       const res = await fetch('/api/verify-lock-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password: pw.value }) });
       const data = await res.json();
       if (data.success) {
+        this.isLockedImagesUnlocked = true;
+        const gate = document.getElementById('locked-images-gate');
+        if (gate) gate.classList.add('hidden');
         const lockUi = document.getElementById('locked-images-lock-ui');
         if (lockUi) lockUi.classList.add('hidden');
         document.getElementById('locked-images-grid').classList.remove('hidden');
@@ -1701,10 +1718,15 @@ if (response.ok) {
 
     if (section === 'locked') {
       // Show locked sub-section, hide regular content
-      if (gate) gate.classList.remove('hidden');
+      if (this.isLockedImagesUnlocked) {
+        if (gate) gate.classList.add('hidden');
+        if (lockedGrid) lockedGrid.classList.remove('hidden');
+      } else {
+        if (gate) gate.classList.remove('hidden');
+        if (lockedGrid) lockedGrid.classList.add('hidden');
+      }
       if (grid) grid.classList.add('hidden');
       if (empty) empty.style.display = 'none';
-      if (lockedGrid) lockedGrid.classList.remove('hidden');
     } else {
       // Show regular content, hide locked sub-section
       if (gate) gate.classList.add('hidden');
