@@ -1,4 +1,4 @@
-﻿* {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -1066,9 +1066,9 @@ html, body {
     font-size: 0.95rem;
 }
 
-/* Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢
+/* ═══════════════════════════════════════════════════════════
    LOCKED IMAGES GATE - PREMIUM DESIGN
-   Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢Ã¢â€¢ */
+   ═══════════════════════════════════════════════════════════ */
 
 .images-sub-section {
     display: flex;
@@ -1091,7 +1091,7 @@ html, body {
     perspective: 1000px;
 }
 
-#locked-images-lock-ui .locked-container {
+.locked-containertwo {
     width: 100%;
     background: linear-gradient(145deg, #ffffff, #f0f0f0);
     border-radius: 24px;
@@ -1102,10 +1102,10 @@ html, body {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.3s ease;
+    height: auto;
 }
 
-#locked-images-lock-ui .lock-icon {
+.locked-containertwo .lock-icon {
     width: 80px;
     height: 80px;
     background: linear-gradient(135deg, #CDACA1 0%, #89999A 100%);
@@ -1117,9 +1117,11 @@ html, body {
     box-shadow: 0 8px 20px rgba(137, 153, 154, 0.4);
     position: relative;
     overflow: hidden;
+    font-size: inherit;
+    color: inherit;
 }
 
-#locked-images-lock-ui .lock-icon::after {
+.locked-containertwo .lock-icon::after {
     content: '';
     position: absolute;
     top: -50%;
@@ -1136,13 +1138,13 @@ html, body {
     100% { transform: translateX(100%) rotate(45deg); }
 }
 
-#locked-images-lock-ui .lock-icon .material-icons {
+.locked-containertwo .lock-icon .material-icons {
     font-size: 40px;
     color: white;
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-#locked-images-lock-ui .locked-container h2 {
+.locked-containertwo h2 {
     font-size: 1.6rem;
     color: #333;
     margin-bottom: 0.6rem;
@@ -1150,14 +1152,14 @@ html, body {
     letter-spacing: -0.5px;
 }
 
-#locked-images-lock-ui .locked-container p {
+.locked-containertwo p {
     color: #777;
     margin-bottom: 2rem;
     font-size: 0.95rem;
     line-height: 1.4;
 }
 
-#locked-images-lock-ui .locked-container input {
+.locked-containertwo input {
     padding: 16px 20px;
     border: 2px solid #eee;
     border-radius: 14px;
@@ -1168,18 +1170,17 @@ html, body {
     width: 100%;
     max-width: 300px;
     color: #333;
-    transition: all 0.3s ease;
     text-align: center;
     letter-spacing: 2px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
 
-#locked-images-lock-ui .locked-container input:focus {
+.locked-containertwo input:focus {
     border-color: #CDACA1;
     box-shadow: 0 0 0 4px rgba(205, 172, 161, 0.15);
 }
 
-#locked-images-lock-ui .locked-container button {
+.locked-containertwo button {
     padding: 16px 40px;
     border: none;
     border-radius: 14px;
@@ -1194,13 +1195,13 @@ html, body {
     max-width: 300px;
 }
 
-#locked-images-lock-ui .locked-container button:hover {
+.locked-containertwo button:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 25px rgba(205, 172, 161, 0.4);
     filter: brightness(1.05);
 }
 
-#locked-images-lock-ui .locked-container button:active {
+.locked-containertwo button:active {
     transform: translateY(0);
 }
 

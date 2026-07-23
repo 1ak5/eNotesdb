@@ -1645,11 +1645,11 @@ if (response.ok) {
       const res = await fetch('/api/check-lock-setup', { credentials: 'include' });
       const data = await res.json();
       if (!data.hasPassword) {
-        lockUi.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Set up password</h2><p>Set a password to protect your locked images</p><input type="password" id="setup-images-password" placeholder="Enter new password"><button id="setup-images-btn">Set Password</button>';
+        lockUi.innerHTML = '<div class="locked-containertwo"><div class="lock-icon"><i class="material-icons">lock</i></div><h2>Set up password</h2><p>Set a password to protect your locked images</p><input type="password" id="setup-images-password" placeholder="Enter new password"><button id="setup-images-btn">Set Password</button></div>';
         document.getElementById('setup-images-btn').addEventListener('click', () => this.setupImageLockPassword());
         document.getElementById('setup-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.setupImageLockPassword(); });
       } else {
-        lockUi.innerHTML = '<div class="lock-icon"><i class="material-icons">lock</i></div><h2>Locked Images</h2><p>Enter your password to view locked images</p><input type="password" id="unlock-images-password" placeholder="Password"><button id="unlock-images-btn">Unlock</button>';
+        lockUi.innerHTML = '<div class="locked-containertwo"><div class="lock-icon"><i class="material-icons">lock</i></div><h2>Locked Images</h2><p>Enter your password to view locked images</p><input type="password" id="unlock-images-password" placeholder="Password"><button id="unlock-images-btn">Unlock</button></div>';
         document.getElementById('unlock-images-btn').addEventListener('click', () => this.verifyImageLock());
         document.getElementById('unlock-images-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.verifyImageLock(); });
       }
