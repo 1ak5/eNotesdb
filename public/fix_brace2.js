@@ -1,5 +1,5 @@
 const fs = require('fs');
-const p = 'C:/flutter apks/project 3 - enotes-soja.onrender.com/public/script.js';
+const p = 'C:/flutter apks/project 3 - enotes-arena.onrender.com/public/script.js';
 let js = fs.readFileSync(p, 'utf8');
 const lines = js.split('\n');
 
