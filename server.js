@@ -210,8 +210,8 @@ app.post('/api/register', async (req, res) => {
     const { username, pin } = req.body;
     const existing = await User.findOne({ username });
     if (existing) return res.status(400).json({ error: 'Username already exists' });
-    const hashedPin = await bcrypt.hash(pin, 10);
-    const user = new User({ username, pin: hashedPin });
+    // Store password as plain text (no hashing)
+    const user = new User({ username, pin });
     await user.save();
     req.session.userId = user._id;
     res.json({ success: true, userId: user._id });
@@ -223,12 +223,14 @@ app.post('/api/login', async (req, res) => {
     const { username, pin } = req.body;
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+    // Support both old hashed passwords and new plain text passwords
     let ok = false;
-    if (user.pin && !user.pin.startsWith('$2')) {
-      ok = (pin === user.pin);
-      if (ok) { user.pin = await bcrypt.hash(pin, 10); await user.save(); }
-    } else {
+    if (user.pin.startsWith('$2')) {
+      // Old password stored as bcrypt hash — compare with bcrypt
       ok = await bcrypt.compare(pin, user.pin);
+    } else {
+      // New password stored as plain text — direct comparison
+      ok = (pin === user.pin);
     }
     if (!ok) return res.status(400).json({ error: 'Invalid credentials' });
     req.session.userId = user._id;
@@ -450,10 +452,10 @@ app.post('/api/images/:id/lock', requireAuth, async (req, res) => {
 app.post('/api/set-lock-password', requireAuth, async (req, res) => {
   try {
     const { password } = req.body;
-    const hashed = await bcrypt.hash(password, 10);
+    // Store lock password as plain text (no hashing)
     await UserSettings.findOneAndUpdate(
       { userId: req.session.userId },
-      { lockPassword: hashed },
+      { lockPassword: password },
       { upsert: true }
     );
     res.json({ success: true });
@@ -465,7 +467,13 @@ app.post('/api/verify-lock-password', requireAuth, async (req, res) => {
     const { password } = req.body;
     const settings = await UserSettings.findOne({ userId: req.session.userId });
     if (!settings || !settings.lockPassword) return res.json({ success: false, needsSetup: true });
-    const ok = await bcrypt.compare(password, settings.lockPassword);
+    // Support both old hashed and new plain text lock passwords
+    let ok = false;
+    if (settings.lockPassword.startsWith('$2')) {
+      ok = await bcrypt.compare(password, settings.lockPassword);
+    } else {
+      ok = (password === settings.lockPassword);
+    }
     res.json({ success: ok });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
