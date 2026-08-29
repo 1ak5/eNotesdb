@@ -10,6 +10,8 @@ class NotesApp {
         this.lockPasswordSet = false;
         this.userId = null;
         this.socket = null;
+        this.selectedImages = new Set();
+        this.isSelectMode = false;
         
         // Ultra-fast cache system
         this.cache = {
@@ -276,6 +278,7 @@ async checkSessionAndLoadInitial() {
             this.userId = data.userId;
             // Set username INSTANTLY
             if (data.username) {
+                this.username = data.username;
                 document.getElementById('username-display').textContent = `Hi ${data.username}`;
             }
             
@@ -571,6 +574,34 @@ async backgroundPreload() {
         if (imageCloseModalBtn) {
             imageCloseModalBtn.addEventListener('click', () => this.closeImageModal());
         }
+
+        // Multi-select events
+        const selectCloseBtn = document.getElementById('select-close-btn');
+        if (selectCloseBtn) selectCloseBtn.addEventListener('click', () => this.exitSelectMode());
+        const selectAllBtn = document.getElementById('select-all-btn');
+        if (selectAllBtn) selectAllBtn.addEventListener('click', () => this.selectAllImages());
+        const selectDeleteBtn = document.getElementById('select-delete-btn');
+        if (selectDeleteBtn) selectDeleteBtn.addEventListener('click', () => this.batchDeleteImages());
+
+        // Guide tour events
+        const guideBtn = document.getElementById('guide-btn');
+        if (guideBtn) guideBtn.addEventListener('click', () => this.showGuide());
+        const guideNext = document.getElementById('guide-next');
+        if (guideNext) guideNext.addEventListener('click', () => this.nextGuide());
+        const guideSkip = document.getElementById('guide-skip');
+        if (guideSkip) guideSkip.addEventListener('click', () => this.closeGuide());
+        const guideModal = document.getElementById('guide-modal');
+        if (guideModal) guideModal.addEventListener('click', (e) => { if (e.target === guideModal) this.closeGuide(); });
+        const openGuideBtn = document.getElementById('open-guide-btn');
+        if (openGuideBtn) openGuideBtn.addEventListener('click', () => { this.closeSettings(); this.showGuide(); });
+
+        // Settings events
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) settingsBtn.addEventListener('click', () => this.openSettings());
+        const settingsClose = document.getElementById('settings-close');
+        if (settingsClose) settingsClose.addEventListener('click', () => this.closeSettings());
+        const settingsModal = document.getElementById('settings-modal');
+        if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) this.closeSettings(); });
     }
 
     showAuth() {
@@ -679,6 +710,7 @@ async backgroundPreload() {
             if (data.success) {
                 // Set new user data
                 this.userId = data.userId;
+                this.username = username;
                 document.getElementById('username-display').textContent = `Hi ${username}`;
                 
                 // Show app screen first
@@ -731,6 +763,7 @@ async backgroundPreload() {
             if (data.success) {
                 // Set new user data
                 this.userId = data.userId;
+                this.username = username;
                 document.getElementById('username-display').textContent = `Hi ${username}`;
                 
                 // Show app screen first
@@ -1754,7 +1787,10 @@ if (response.ok) {
       if (section !== 'locked') empty.style.display = 'none';
 
       targetGrid.innerHTML = images.map(img => `
-        <div class="image-card" data-id="${img._id}" onclick="app.openImageModal('${img._id}', '${img.cloudUrl}', '${img.isPinned}', '${img.isLocked}')">
+        <div class="image-card ${this.selectedImages.has(img._id) ? 'selected' : ''}" data-id="${img._id}" onclick="app.handleImageClick(event, '${img._id}', '${img.cloudUrl}', '${img.isPinned}', '${img.isLocked}')">
+          <div class="image-select-check ${this.isSelectMode ? 'visible' : ''}" onclick="event.stopPropagation(); app.toggleImageSelect('${img._id}')">
+            <i class="material-icons">${this.selectedImages.has(img._id) ? 'check_circle' : 'radio_button_unchecked'}</i>
+          </div>
           <img src="${img.cloudUrl}" alt="${img.fileName}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'/>'">
           ${img.isPinned ? '<div class="image-pin-badge"><i class="material-icons">push_pin</i></div>' : ''}
           ${img.isLocked ? '<div class="image-lock-badge"><i class="material-icons">lock</i></div>' : ''}
@@ -1771,24 +1807,40 @@ if (response.ok) {
 
   async uploadImage(file, section = 'regular') {
     const progress = document.getElementById('images-upload-progress');
+    const bar = document.getElementById('upload-bar');
+    const text = document.getElementById('upload-text');
     progress.classList.remove('hidden');
+    bar.style.width = '0%';
+    text.textContent = 'Uploading... 0%';
 
     try {
-      // Upload to Cloudinary
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', this.cloudinaryConfig.uploadPreset);
 
-      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${this.cloudinaryConfig.cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData
+      const cloudUrl = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${this.cloudinaryConfig.cloudName}/image/upload`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            bar.style.setProperty('--progress', pct + '%');
+            text.textContent = `Uploading... ${pct}%`;
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data.secure_url);
+          } else reject(new Error('Cloudinary upload failed'));
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(formData);
       });
 
-      if (!cloudRes.ok) throw new Error('Cloudinary upload failed');
-      const cloudData = await cloudRes.json();
-      const cloudUrl = cloudData.secure_url;
+      bar.style.setProperty('--progress', '100%');
+      text.textContent = 'Saving...';
 
-      // Save to server
       const res = await fetch('/api/images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1803,8 +1855,6 @@ if (response.ok) {
       });
 
       if (!res.ok) throw new Error('Failed to save image');
-
-      // Reload images
       await this.loadImages(section);
       if (section === 'locked') await this.loadImages('regular');
     } catch (e) {
@@ -1812,6 +1862,7 @@ if (response.ok) {
       alert('Failed to upload image: ' + e.message);
     } finally {
       progress.classList.add('hidden');
+      bar.style.setProperty('--progress', '0%');
     }
   }
 
@@ -1884,6 +1935,161 @@ if (response.ok) {
       const data = await res.json();
       return data.hasPassword;
     } catch (e) { return false; }
+  }
+
+  // ===== MULTI-SELECT FOR IMAGES =====
+  handleImageClick(event, id, url, isPinned, isLocked) {
+    if (this.isSelectMode) {
+      this.toggleImageSelect(id);
+    } else {
+      this.openImageModal(id, url, isPinned, isLocked);
+    }
+  }
+
+  enterSelectMode(id) {
+    this.isSelectMode = true;
+    this.selectedImages.add(id);
+    this.updateSelectUI();
+  }
+
+  toggleImageSelect(id) {
+    if (!this.isSelectMode) {
+      this.enterSelectMode(id);
+      return;
+    }
+    if (this.selectedImages.has(id)) {
+      this.selectedImages.delete(id);
+    } else {
+      this.selectedImages.add(id);
+    }
+    if (this.selectedImages.size === 0) {
+      this.exitSelectMode();
+    } else {
+      this.updateSelectUI();
+    }
+  }
+
+  exitSelectMode() {
+    this.isSelectMode = false;
+    this.selectedImages.clear();
+    this.updateSelectUI();
+  }
+
+  selectAllImages() {
+    const cards = document.querySelectorAll('.image-card:not(.hidden)');
+    if (this.selectedImages.size === cards.length) {
+      this.exitSelectMode();
+      return;
+    }
+    cards.forEach(c => this.selectedImages.add(c.dataset.id));
+    this.updateSelectUI();
+  }
+
+  updateSelectUI() {
+    const bar = document.getElementById('images-select-bar');
+    const count = document.getElementById('select-count');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const cards = document.querySelectorAll('.image-card');
+    if (this.isSelectMode) {
+      bar.classList.remove('hidden');
+      count.textContent = `${this.selectedImages.size} selected`;
+      const totalCards = document.querySelectorAll('.image-card:not(.hidden)').length;
+      selectAllBtn.textContent = this.selectedImages.size === totalCards ? 'Deselect all' : 'Select all';
+    } else {
+      bar.classList.add('hidden');
+    }
+    cards.forEach(card => {
+      const id = card.dataset.id;
+      const check = card.querySelector('.image-select-check');
+      if (check) {
+        check.classList.toggle('visible', this.isSelectMode);
+        const icon = check.querySelector('i');
+        icon.textContent = this.selectedImages.has(id) ? 'check_circle' : 'radio_button_unchecked';
+      }
+      card.classList.toggle('selected', this.selectedImages.has(id));
+    });
+  }
+
+  async batchDeleteImages() {
+    if (this.selectedImages.size === 0) return;
+    const count = this.selectedImages.size;
+    if (!confirm(`Delete ${count} selected image${count > 1 ? 's' : ''}?`)) return;
+    try {
+      const res = await fetch('/api/images/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ids: Array.from(this.selectedImages) })
+      });
+      if (!res.ok) throw new Error('Batch delete failed');
+      this.exitSelectMode();
+      await this.loadImages('regular');
+      await this.loadImages('locked');
+    } catch (e) {
+      console.error('Batch delete error:', e);
+      alert('Failed to delete images');
+    }
+  }
+
+  // ===== GUIDE TOUR =====
+  showGuide() {
+    const pages = [
+      { icon: 'waving_hand', title: 'Welcome to eNotes!', desc: 'Your all-in-one notebook app for notes, checklists, images, and more. Let us show you around!' },
+      { icon: 'description', title: 'Regular Notes', desc: 'Create notebooks to organize your notes. Tap a notebook to open it, then add notes inside. Use the pencil icon to edit, star to favorite, or trash to delete.' },
+      { icon: 'checklist', title: 'Checklists', desc: 'Create checklist notebooks to track tasks and to-dos. Tap checkboxes to mark items complete. Perfect for shopping lists, project tasks, or daily routines.' },
+      { icon: 'lock', title: 'Locked Notes', desc: 'Protect your private notes with a password. Set up a password on first use, then enter it to unlock. Locked notes are safe from prying eyes.' },
+      { icon: 'image', title: 'Images Section', desc: 'Upload and view images in a beautiful grid. Tap any image to preview it full screen. You can pin, lock, or delete images. Long-press to enter multi-select mode for batch delete.' },
+      { icon: 'star', title: 'Favorites', desc: 'Star any note to add it to Favorites for quick access. All your starred notes are collected in one place.' },
+      { icon: 'sync', title: 'Real-time Sync', desc: 'Your data syncs automatically via WebSocket. Changes appear instantly across devices. Works offline too — data saves locally and syncs when back online.' },
+      { icon: 'settings', title: 'Settings & More', desc: 'Access settings from the gear icon in the header. You can also find this Guide Tour anytime from Settings.' },
+      { icon: 'rocket_launch', title: "You're All Set!", desc: 'You now know everything about eNotes! Start creating notes, checklists, and saving images. Enjoy your organized life!' }
+    ];
+    this.guidePages = pages;
+    this.guideIndex = 0;
+    this.renderGuide();
+    document.getElementById('guide-modal').classList.remove('hidden');
+  }
+
+  renderGuide() {
+    const page = this.guidePages[this.guideIndex];
+    const body = document.getElementById('guide-body');
+    const dots = document.getElementById('guide-dots');
+    const nextBtn = document.getElementById('guide-next');
+    const skipBtn = document.getElementById('guide-skip');
+    body.innerHTML = `
+      <div class="guide-icon-wrap"><i class="material-icons">${page.icon}</i></div>
+      <h2>${page.title}</h2>
+      <p>${page.desc}</p>
+    `;
+    dots.innerHTML = this.guidePages.map((_, i) =>
+      `<span class="guide-dot ${i === this.guideIndex ? 'active' : ''}"></span>`
+    ).join('');
+    const isLast = this.guideIndex === this.guidePages.length - 1;
+    nextBtn.textContent = isLast ? 'Get Started' : 'Next';
+    skipBtn.textContent = isLast ? 'Done' : 'Skip';
+  }
+
+  nextGuide() {
+    if (this.guideIndex >= this.guidePages.length - 1) {
+      document.getElementById('guide-modal').classList.add('hidden');
+    } else {
+      this.guideIndex++;
+      this.renderGuide();
+    }
+  }
+
+  closeGuide() {
+    document.getElementById('guide-modal').classList.add('hidden');
+  }
+
+  // ===== SETTINGS =====
+  openSettings() {
+    document.getElementById('settings-username').textContent = this.username || 'User';
+    document.getElementById('settings-modal').classList.remove('hidden');
+  }
+
+  closeSettings() {
+    document.getElementById('settings-modal').classList.add('hidden');
   }
 
     }

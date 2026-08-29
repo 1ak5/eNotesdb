@@ -422,6 +422,18 @@ app.delete('/api/images/:id', requireAuth, async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.post('/api/images/batch-delete', requireAuth, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array required' });
+    }
+    await Image.deleteMany({ _id: { $in: ids }, userId: req.session.userId });
+    broadcastImagesUpdate(req.session.userId);
+    res.json({ success: true, deleted: ids.length });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.post('/api/images/:id/pin', requireAuth, async (req, res) => {
   try {
     const image = await Image.findById(req.params.id);

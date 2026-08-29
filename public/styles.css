@@ -1339,3 +1339,354 @@ html, body {
         height: 44px;
     }
 }
+
+/* ═══════════════════════════════════════════════
+   MULTI-SELECT FOR IMAGES
+   ═══════════════════════════════════════════════ */
+
+.images-select-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #89999A, #6d7f80);
+    border-radius: 14px;
+    color: white;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.select-bar-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.select-bar-btn i { font-size: 20px; }
+
+.select-delete {
+    margin-left: auto;
+    background: rgba(255,59,48,0.2);
+    padding: 6px 14px;
+    border-radius: 10px;
+}
+
+.image-select-check {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.image-select-check.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.image-select-check i {
+    font-size: 22px;
+    color: white;
+}
+
+.image-card.selected {
+    outline: 3px solid #89999A;
+    outline-offset: -3px;
+    opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════
+   UPLOAD PROGRESS - REAL %
+   ═══════════════════════════════════════════════ */
+
+.upload-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    background: rgba(221, 200, 183, 0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+}
+
+.upload-progress .upload-bar {
+    height: 4px;
+    flex: 1;
+    background: rgba(137, 153, 154, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-progress .upload-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: #89999A;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.upload-progress span {
+    font-size: 13px;
+    color: #555;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════
+   GUIDE TOUR
+   ═══════════════════════════════════════════════ */
+
+.guide-btn, .settings-btn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.guide-btn:hover, .settings-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.guide-btn i, .settings-btn i { font-size: 20px; }
+
+.guide-content {
+    background: white;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    padding: 32px 28px 24px;
+    text-align: center;
+    position: relative;
+    animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.guide-skip {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #89999A;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.guide-icon-wrap {
+    width: 100px;
+    height: 100px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(137,153,154,0.1), rgba(137,153,154,0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 16px auto 24px;
+}
+
+.guide-icon-wrap i {
+    font-size: 48px;
+    color: #89999A;
+}
+
+.guide-content h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.guide-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 24px;
+}
+
+.guide-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.guide-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: all 0.3s;
+}
+
+.guide-dot.active {
+    background: #89999A;
+    width: 24px;
+    border-radius: 4px;
+}
+
+.guide-next-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    background: #89999A;
+    color: white;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.guide-next-btn:hover { background: #6d7f80; }
+
+/* ═══════════════════════════════════════════════
+   SETTINGS
+   ═══════════════════════════════════════════════ */
+
+.settings-content {
+    background: white;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: scaleIn 0.3s ease;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+}
+
+.settings-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+}
+
+.settings-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.settings-body {
+    padding: 20px 24px 24px;
+}
+
+.settings-section {
+    margin-bottom: 20px;
+}
+
+.settings-section h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-left: 4px;
+}
+
+.settings-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #f8f8f8;
+    border-radius: 14px;
+    margin-bottom: 8px;
+}
+
+.settings-card i {
+    font-size: 20px;
+    color: #89999A;
+}
+
+.settings-card span {
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+}
+
+.settings-badge {
+    margin-left: auto;
+    font-size: 12px !important;
+    color: #34c759 !important;
+}
+
+.settings-value {
+    margin-left: auto;
+    font-size: 13px !important;
+    color: #999 !important;
+}
+
+.settings-guide-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #f8f8f8;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+    text-align: left;
+}
+
+.settings-guide-btn i:first-child {
+    color: #89999A;
+}
+
+.settings-guide-btn span {
+    flex: 1;
+}
+
+.settings-guide-btn i:last-child {
+    color: #ccc;
+    margin-left: auto;
+}
