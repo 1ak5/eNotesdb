@@ -1427,6 +1427,151 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════
+   IMAGE FOLDERS
+   ═══════════════════════════════════════════════ */
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    margin-bottom: 8px;
+}
+
+.folder-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(137,153,154,0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-back-btn i { font-size: 20px; color: #333; }
+
+.folder-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.new-folder-row {
+    padding: 4px 16px 8px;
+}
+
+.new-folder-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border: 1.5px dashed rgba(137,153,154,0.4);
+    border-radius: 12px;
+    background: transparent;
+    color: #89999A;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.new-folder-btn:hover {
+    border-color: #89999A;
+    background: rgba(137,153,154,0.05);
+}
+
+.new-folder-btn i { font-size: 20px; }
+
+.folders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 0 16px 12px;
+}
+
+.folder-card {
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.folder-card:hover { transform: translateY(-2px); }
+
+.folder-card-preview {
+    aspect-ratio: 1;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(137,153,154,0.08);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.folder-card-preview i {
+    font-size: 40px;
+    color: rgba(137,153,154,0.3);
+}
+
+.folder-card-count {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: white;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 0;
+}
+
+.folder-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-top: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folder-card-menu {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.folder-card:hover .folder-card-menu { opacity: 1; }
+
+.folder-card-menu i { font-size: 16px; color: white; }
+
+/* ═══════════════════════════════════════════════
    GUIDE TOUR
    ═══════════════════════════════════════════════ */
 

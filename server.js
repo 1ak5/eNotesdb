@@ -93,8 +93,16 @@ const imageSchema = new mongoose.Schema({
   isPinned: { type: Boolean, default: false },
   isLocked: { type: Boolean, default: false },
   section: { type: String, enum: ['regular', 'locked'], default: 'regular' },
+  folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'ImageFolder', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+});
+
+const imageFolderSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name: { type: String, required: true },
+  section: { type: String, enum: ['regular', 'locked'], default: 'regular' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const userSettingsSchema = new mongoose.Schema({
@@ -107,6 +115,7 @@ const User = mongoose.model('User', userSchema);
 const Notebook = mongoose.model('Notebook', notebookSchema);
 const Note = mongoose.model('Note', noteSchema);
 const Image = mongoose.model('Image', imageSchema);
+const ImageFolder = mongoose.model('ImageFolder', imageFolderSchema);
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema);
 
 // ─── MIDDLEWARE ─────────────────────────────────────────
@@ -393,16 +402,20 @@ app.get('/api/images', requireAuth, async (req, res) => {
 
 app.post('/api/images', requireAuth, async (req, res) => {
   try {
-    const { cloudUrl, fileName, isPinned, isLocked, section } = req.body;
+    const { cloudUrl, fileName, isPinned, isLocked, section, folderId } = req.body;
     if (!cloudUrl) return res.status(400).json({ error: 'cloudUrl required' });
-    const image = new Image({
+    const imageData = {
       userId: req.session.userId,
       cloudUrl,
       fileName: fileName || 'image',
       isPinned: isPinned || false,
       isLocked: isLocked || false,
-      section: section || (isLocked ? 'locked' : 'regular')
-    });
+      section: section || (isLocked ? 'locked' : 'regular'),
+    };
+    if (folderId && mongoose.Types.ObjectId.isValid(folderId)) {
+      imageData.folderId = folderId;
+    }
+    const image = new Image(imageData);
     await image.save();
     broadcastImagesUpdate(req.session.userId);
     res.json(image);
@@ -456,6 +469,64 @@ app.post('/api/images/:id/lock', requireAuth, async (req, res) => {
     await image.save();
     broadcastImagesUpdate(req.session.userId);
     res.json(image);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Move image to/from folder
+app.post('/api/images/:id/move-folder', requireAuth, async (req, res) => {
+  try {
+    const { folderId } = req.body;
+    const image = await Image.findById(req.params.id);
+    if (!image) return res.status(404).json({ error: 'Not found' });
+    if (image.userId.toString() !== req.session.userId.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    image.folderId = folderId && mongoose.Types.ObjectId.isValid(folderId) ? folderId : null;
+    image.updatedAt = new Date();
+    await image.save();
+    broadcastImagesUpdate(req.session.userId);
+    res.json(image);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ─── IMAGE FOLDERS ──────────────────────────────────────
+
+app.get('/api/image-folders', requireAuth, async (req, res) => {
+  try {
+    const query = { userId: req.session.userId };
+    if (req.query.section) query.section = req.query.section;
+    const folders = await ImageFolder.find(query).lean().sort({ createdAt: -1 });
+    res.json(folders);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/image-folders', requireAuth, async (req, res) => {
+  try {
+    const { name, section } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    const folder = new ImageFolder({
+      userId: req.session.userId,
+      name,
+      section: section || 'regular',
+    });
+    await folder.save();
+    broadcastImagesUpdate(req.session.userId);
+    res.json(folder);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/image-folders/:id', requireAuth, async (req, res) => {
+  try {
+    const folder = await ImageFolder.findById(req.params.id);
+    if (!folder) return res.status(404).json({ error: 'Not found' });
+    if (folder.userId.toString() !== req.session.userId.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    // Unlink all images in this folder
+    await Image.updateMany({ folderId: req.params.id }, { folderId: null });
+    await ImageFolder.findByIdAndDelete(req.params.id);
+    broadcastImagesUpdate(req.session.userId);
+    res.json({ success: true });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 

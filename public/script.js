@@ -13,6 +13,11 @@ class NotesApp {
         this.selectedImages = new Set();
         this.isSelectMode = false;
         
+        // Folder state
+        this.currentImageFolder = null; // null = root (all images + folders)
+        this.imageFolders = [];
+        this.lockedImageFolders = [];
+        
         // Ultra-fast cache system
         this.cache = {
             notebooks: {
@@ -506,6 +511,15 @@ async backgroundPreload() {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.images-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
+                // Reset folder state on tab switch
+                this.currentImageFolder = null;
+                const folderHeader = document.getElementById('folder-header');
+                const newFolderRow = document.getElementById('new-folder-row');
+                const foldersGrid = document.getElementById('folders-grid');
+                if (folderHeader) folderHeader.classList.add('hidden');
+                if (newFolderRow) newFolderRow.classList.remove('hidden');
+                if (foldersGrid) foldersGrid.classList.remove('hidden');
+
                 const section = tab.dataset.imgtab;
                 if (section === 'locked') {
                     if (this.isLockedImagesUnlocked) {
@@ -515,12 +529,13 @@ async backgroundPreload() {
                         if (gateEl) gateEl.classList.add('hidden');
                         if (lockedGridEl) lockedGridEl.classList.remove('hidden');
                         if (regularGridEl) regularGridEl.classList.add('hidden');
+                        if (foldersGrid) foldersGrid.classList.add('hidden');
+                        if (newFolderRow) newFolderRow.classList.add('hidden');
                         this.loadImages('locked');
                     } else {
                         this.showImageLockGate();
                     }
                 } else {
-                    // Hide locked gate, show regular
                     const gateEl = document.getElementById('locked-images-gate');
                     const lockedGridEl = document.getElementById('locked-images-grid');
                     const regularGridEl = document.getElementById('images-grid');
@@ -602,6 +617,12 @@ async backgroundPreload() {
         if (settingsClose) settingsClose.addEventListener('click', () => this.closeSettings());
         const settingsModal = document.getElementById('settings-modal');
         if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) this.closeSettings(); });
+
+        // Folder events
+        const folderBackBtn = document.getElementById('folder-back-btn');
+        if (folderBackBtn) folderBackBtn.addEventListener('click', () => this.exitFolder());
+        const newFolderBtn = document.getElementById('new-folder-btn');
+        if (newFolderBtn) newFolderBtn.addEventListener('click', () => this.showCreateFolderDialog());
     }
 
     showAuth() {
@@ -1748,9 +1769,11 @@ if (response.ok) {
     const grid = document.getElementById('images-grid');
     const empty = document.getElementById('images-empty');
     const lockedGrid = document.getElementById('locked-images-grid');
+    const folderHeader = document.getElementById('folder-header');
+    const newFolderRow = document.getElementById('new-folder-row');
+    const foldersGrid = document.getElementById('folders-grid');
 
     if (section === 'locked') {
-      // Show locked sub-section, hide regular content
       if (this.isLockedImagesUnlocked) {
         if (gate) gate.classList.add('hidden');
         if (lockedGrid) lockedGrid.classList.remove('hidden');
@@ -1760,27 +1783,55 @@ if (response.ok) {
       }
       if (grid) grid.classList.add('hidden');
       if (empty) empty.style.display = 'none';
+      if (foldersGrid) foldersGrid.classList.add('hidden');
+      if (folderHeader) folderHeader.classList.add('hidden');
+      if (newFolderRow) newFolderRow.classList.add('hidden');
     } else {
-      // Show regular content, hide locked sub-section
       if (gate) gate.classList.add('hidden');
       if (lockedGrid) lockedGrid.classList.add('hidden');
       if (grid) grid.classList.remove('hidden');
+      // Show/hide folder UI based on currentImageFolder
+      if (this.currentImageFolder) {
+        if (folderHeader) folderHeader.classList.remove('hidden');
+        if (newFolderRow) newFolderRow.classList.add('hidden');
+        if (foldersGrid) foldersGrid.classList.add('hidden');
+      } else {
+        if (folderHeader) folderHeader.classList.add('hidden');
+        if (newFolderRow) newFolderRow.classList.remove('hidden');
+        if (foldersGrid) foldersGrid.classList.remove('hidden');
+      }
+    }
+
+    // Load folders (only for regular/locked root view)
+    if (!this.currentImageFolder) {
+      await this.loadFolders(section);
     }
 
     try {
-      const url = section ? '/api/images?section=' + section : '/api/images';
+      let url = section ? '/api/images?section=' + section : '/api/images';
+      if (this.currentImageFolder) {
+        // When inside a folder, fetch all images and filter client-side
+        url = '/api/images?section=' + section;
+      }
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to load images');
-      const images = await res.json();
+      let images = await res.json();
+
+      // Filter by folder
+      if (this.currentImageFolder) {
+        images = images.filter(img => img.folderId === this.currentImageFolder);
+      } else if (section !== 'locked') {
+        // In root, show only images NOT in any folder
+        const folderIds = new Set(this.imageFolders.map(f => f._id));
+        images = images.filter(img => !img.folderId || !folderIds.has(img.folderId));
+      }
 
       const targetGrid = section === 'locked' ? lockedGrid : grid;
       if (!targetGrid) return;
 
-      if (images.length === 0) {
+      if (images.length === 0 && (!this.currentImageFolder || section !== 'locked')) {
         targetGrid.innerHTML = '';
-        if (section !== 'locked') {
-          empty.style.display = 'flex';
-        }
+        if (section !== 'locked') empty.style.display = 'flex';
         return;
       }
 
@@ -1803,6 +1854,157 @@ if (response.ok) {
     } catch (e) {
       console.error('Load images error:', e);
     }
+  }
+
+  // ─── Folders ──────────────────────────────────────────
+
+  async loadFolders(section = 'regular') {
+    const foldersGrid = document.getElementById('folders-grid');
+    if (!foldersGrid) return;
+    try {
+      const url = section ? '/api/image-folders?section=' + section : '/api/image-folders';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load folders');
+      const folders = await res.json();
+      if (section === 'locked') this.lockedImageFolders = folders;
+      else this.imageFolders = folders;
+
+      if (!this.currentImageFolder && folders.length > 0) {
+        // Load images to get preview
+        const imgRes = await fetch('/api/images?section=' + section, { credentials: 'include' });
+        const allImages = imgRes.ok ? await imgRes.json() : [];
+
+        foldersGrid.innerHTML = folders.map(f => {
+          const folderImages = allImages.filter(img => img.folderId === f._id);
+          const count = folderImages.length;
+          const preview = folderImages.length > 0 ? folderImages[0] : null;
+          return `
+            <div class="folder-card" onclick="app.enterFolder('${f._id}', '${f.name.replace(/'/g, "\\'")}')">
+              <div class="folder-card-preview">
+                ${preview ? `<img src="${preview.cloudUrl}" alt="">` : '<i class="material-icons">folder</i>'}
+                <div class="folder-card-count">${count} image${count !== 1 ? 's' : ''}</div>
+                <button class="folder-card-menu" onclick="event.stopPropagation(); app.showFolderMenu('${f._id}', '${f.name.replace(/'/g, "\\'")}')" title="Options">
+                  <i class="material-icons">more_vert</i>
+                </button>
+              </div>
+              <div class="folder-card-name">${f.name}</div>
+            </div>
+          `;
+        }).join('');
+      } else if (!this.currentImageFolder) {
+        foldersGrid.innerHTML = '';
+      }
+    } catch (e) {
+      console.error('Load folders error:', e);
+    }
+  }
+
+  enterFolder(folderId, folderName) {
+    this.currentImageFolder = folderId;
+    const folderHeader = document.getElementById('folder-header');
+    const folderTitle = document.getElementById('folder-title');
+    const newFolderRow = document.getElementById('new-folder-row');
+    const foldersGrid = document.getElementById('folders-grid');
+    const lockedGrid = document.getElementById('locked-images-grid');
+
+    if (folderHeader) folderHeader.classList.remove('hidden');
+    if (folderTitle) folderTitle.textContent = folderName;
+    if (newFolderRow) newFolderRow.classList.add('hidden');
+    if (foldersGrid) foldersGrid.classList.add('hidden');
+    // Reload images filtered to this folder
+    const activeTab = document.querySelector('.images-tab.active');
+    const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+    this.loadImages(section);
+  }
+
+  exitFolder() {
+    this.currentImageFolder = null;
+    const folderHeader = document.getElementById('folder-header');
+    const newFolderRow = document.getElementById('new-folder-row');
+    const foldersGrid = document.getElementById('folders-grid');
+
+    if (folderHeader) folderHeader.classList.add('hidden');
+    if (newFolderRow) newFolderRow.classList.remove('hidden');
+    if (foldersGrid) foldersGrid.classList.remove('hidden');
+    const activeTab = document.querySelector('.images-tab.active');
+    const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+    this.loadImages(section);
+  }
+
+  async showCreateFolderDialog() {
+    const name = prompt('Folder name:');
+    if (!name || !name.trim()) return;
+    try {
+      const activeTab = document.querySelector('.images-tab.active');
+      const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+      const res = await fetch('/api/image-folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: name.trim(), section })
+      });
+      if (res.ok) {
+        await this.loadFolders(section);
+        // Also reload images to update unfoldered count
+        await this.loadImages(section);
+      }
+    } catch (e) { console.error('Create folder error:', e); }
+  }
+
+  showFolderMenu(folderId, folderName) {
+    const action = prompt('Folder options:\n1 = Rename\n2 = Delete\n3 = Cancel', '3');
+    if (action === '1') {
+      const newName = prompt('New name:', folderName);
+      if (newName && newName.trim()) {
+        // No rename endpoint yet — just re-create (for simplicity)
+        this.deleteFolderById(folderId);
+        fetch('/api/image-folders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: newName.trim(), section: 'regular' })
+        }).then(() => {
+          this.loadFolders('regular');
+          this.loadImages('regular');
+        });
+      }
+    } else if (action === '2') {
+      this.deleteFolderById(folderId);
+    }
+  }
+
+  async deleteFolderById(folderId) {
+    if (!confirm('Delete this folder? Images inside will be moved to root.')) return;
+    try {
+      const res = await fetch('/api/image-folders/' + folderId, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const activeTab = document.querySelector('.images-tab.active');
+        const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+        if (this.currentImageFolder === folderId) this.exitFolder();
+        await this.loadFolders(section);
+        await this.loadImages(section);
+      }
+    } catch (e) { console.error('Delete folder error:', e); }
+  }
+
+  async moveImageToFolder(imageId, folderId) {
+    try {
+      const res = await fetch('/api/images/' + imageId + '/move-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ folderId })
+      });
+      if (res.ok) {
+        const activeTab = document.querySelector('.images-tab.active');
+        const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+        await this.loadFolders(section);
+        await this.loadImages(section);
+      }
+    } catch (e) { console.error('Move to folder error:', e); }
   }
 
   async uploadImage(file, section = 'regular') {
@@ -1850,7 +2052,8 @@ if (response.ok) {
           fileName: file.name,
           section,
           isLocked: section === 'locked',
-          isPinned: false
+          isPinned: false,
+          folderId: this.currentImageFolder || null
         })
       });
 

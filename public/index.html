@@ -126,11 +126,30 @@
                     <div class="upload-bar" id="upload-bar"></div>
                     <span id="upload-text">Uploading... 0%</span>
                 </div>
+
+                <!-- Folder header (back button + folder title) -->
+                <div id="folder-header" class="folder-header hidden">
+                    <button id="folder-back-btn" class="folder-back-btn"><i class="material-icons">arrow_back</i></button>
+                    <span id="folder-title" class="folder-title"></span>
+                    <span id="folder-actions"></span>
+                </div>
+
+                <!-- New folder button (only when NOT inside a folder) -->
+                <div id="new-folder-row" class="new-folder-row">
+                    <button id="new-folder-btn" class="new-folder-btn">
+                        <i class="material-icons">create_new_folder</i> New Folder
+                    </button>
+                </div>
+
+                <!-- Folders grid -->
+                <div id="folders-grid" class="folders-grid"></div>
+
+                <!-- Images grid (unfoldered OR folder contents) -->
                 <div id="images-grid" class="images-grid"></div>
                 <div id="images-empty" class="images-empty">
                     <i class="material-icons">image</i>
                     <h3>No images yet</h3>
-                    <p>Tap Add to upload images</p>
+                    <p>Tap Add to upload images, or create a folder</p>
                 </div>
                 <!-- Locked Images Password Gate (inside images-view) -->
                 <div id="locked-images-gate" class="images-sub-section">
