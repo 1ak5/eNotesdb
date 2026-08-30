@@ -529,8 +529,6 @@ async backgroundPreload() {
                         if (gateEl) gateEl.classList.add('hidden');
                         if (lockedGridEl) lockedGridEl.classList.remove('hidden');
                         if (regularGridEl) regularGridEl.classList.add('hidden');
-                        if (foldersGrid) foldersGrid.classList.add('hidden');
-                        if (newFolderRow) newFolderRow.classList.add('hidden');
                         this.loadImages('locked');
                     } else {
                         this.showImageLockGate();
@@ -1783,9 +1781,22 @@ if (response.ok) {
       }
       if (grid) grid.classList.add('hidden');
       if (empty) empty.style.display = 'none';
-      if (foldersGrid) foldersGrid.classList.add('hidden');
-      if (folderHeader) folderHeader.classList.add('hidden');
-      if (newFolderRow) newFolderRow.classList.add('hidden');
+      // Show folder UI for locked section too
+      if (this.isLockedImagesUnlocked) {
+        if (this.currentImageFolder) {
+          if (folderHeader) folderHeader.classList.remove('hidden');
+          if (newFolderRow) newFolderRow.classList.add('hidden');
+          if (foldersGrid) foldersGrid.classList.add('hidden');
+        } else {
+          if (folderHeader) folderHeader.classList.add('hidden');
+          if (newFolderRow) newFolderRow.classList.remove('hidden');
+          if (foldersGrid) foldersGrid.classList.remove('hidden');
+        }
+      } else {
+        if (folderHeader) folderHeader.classList.add('hidden');
+        if (newFolderRow) newFolderRow.classList.add('hidden');
+        if (foldersGrid) foldersGrid.classList.add('hidden');
+      }
     } else {
       if (gate) gate.classList.add('hidden');
       if (lockedGrid) lockedGrid.classList.add('hidden');
@@ -1820,16 +1831,16 @@ if (response.ok) {
       // Filter by folder
       if (this.currentImageFolder) {
         images = images.filter(img => img.folderId === this.currentImageFolder);
-      } else if (section !== 'locked') {
+      } else {
         // In root, show only images NOT in any folder
-        const folderIds = new Set(this.imageFolders.map(f => f._id));
+        const folderIds = new Set((section === 'locked' ? this.lockedImageFolders : this.imageFolders).map(f => f._id));
         images = images.filter(img => !img.folderId || !folderIds.has(img.folderId));
       }
 
       const targetGrid = section === 'locked' ? lockedGrid : grid;
       if (!targetGrid) return;
 
-      if (images.length === 0 && (!this.currentImageFolder || section !== 'locked')) {
+      if (images.length === 0) {
         targetGrid.innerHTML = '';
         if (section !== 'locked') empty.style.display = 'flex';
         return;
