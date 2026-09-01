@@ -515,6 +515,22 @@ app.post('/api/image-folders', requireAuth, async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.patch('/api/image-folders/:id', requireAuth, async (req, res) => {
+  try {
+    const folder = await ImageFolder.findById(req.params.id);
+    if (!folder) return res.status(404).json({ error: 'Not found' });
+    if (folder.userId.toString() !== req.session.userId.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+    folder.name = name.trim();
+    await folder.save();
+    broadcastImagesUpdate(req.session.userId);
+    res.json(folder);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.delete('/api/image-folders/:id', requireAuth, async (req, res) => {
   try {
     const folder = await ImageFolder.findById(req.params.id);

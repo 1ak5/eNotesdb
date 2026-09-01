@@ -1888,11 +1888,10 @@ if (response.ok) {
         foldersGrid.innerHTML = folders.map(f => {
           const folderImages = allImages.filter(img => img.folderId === f._id);
           const count = folderImages.length;
-          const preview = folderImages.length > 0 ? folderImages[0] : null;
           return `
             <div class="folder-card" onclick="app.enterFolder('${f._id}', '${f.name.replace(/'/g, "\\'")}')">
               <div class="folder-card-preview">
-                ${preview ? `<img src="${preview.cloudUrl}" alt="">` : '<i class="material-icons">folder</i>'}
+                <i class="material-icons">folder</i>
                 <div class="folder-card-count">${count} image${count !== 1 ? 's' : ''}</div>
                 <button class="folder-card-menu" onclick="event.stopPropagation(); app.showFolderMenu('${f._id}', '${f.name.replace(/'/g, "\\'")}')" title="Options">
                   <i class="material-icons">more_vert</i>
@@ -1966,22 +1965,28 @@ if (response.ok) {
     const action = prompt('Folder options:\n1 = Rename\n2 = Delete\n3 = Cancel', '3');
     if (action === '1') {
       const newName = prompt('New name:', folderName);
-      if (newName && newName.trim()) {
-        // No rename endpoint yet — just re-create (for simplicity)
-        this.deleteFolderById(folderId);
-        fetch('/api/image-folders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ name: newName.trim(), section: 'regular' })
-        }).then(() => {
-          this.loadFolders('regular');
-          this.loadImages('regular');
-        });
+      if (newName && newName.trim() && newName.trim() !== folderName) {
+        this.renameFolder(folderId, newName.trim());
       }
     } else if (action === '2') {
       this.deleteFolderById(folderId);
     }
+  }
+
+  async renameFolder(folderId, newName) {
+    try {
+      const res = await fetch('/api/image-folders/' + folderId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: newName })
+      });
+      if (res.ok) {
+        const activeTab = document.querySelector('.images-tab.active');
+        const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+        await this.loadFolders(section);
+      }
+    } catch (e) { console.error('Rename folder error:', e); }
   }
 
   async deleteFolderById(folderId) {
