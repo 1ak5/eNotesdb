@@ -1518,15 +1518,19 @@ html, body {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 12px;
     padding: 0 0 12px;
+    position: relative;
+    z-index: 1;
 }
 
 .folder-card {
     cursor: pointer;
     text-align: center;
     transition: transform 0.2s;
+    position: relative;
+    z-index: 1;
 }
 
-.folder-card:hover { transform: translateY(-2px); }
+.folder-card:hover { transform: translateY(-2px); z-index: 10; }
 
 .folder-card-preview {
     aspect-ratio: 1;
@@ -1590,14 +1594,13 @@ html, body {
 /* Folder Context Menu */
 .folder-context-menu {
     position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
+    top: 8px;
+    right: 4px;
     background: #FFFFFF;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(29, 29, 31, 0.15), 0 2px 6px rgba(29, 29, 31, 0.08);
     min-width: 140px;
-    z-index: 100;
+    z-index: 9999;
     overflow: hidden;
     animation: menuFadeIn 0.15s ease;
 }
