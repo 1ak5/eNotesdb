@@ -1962,15 +1962,116 @@ if (response.ok) {
   }
 
   showFolderMenu(folderId, folderName) {
-    const action = prompt('Folder options:\n1 = Rename\n2 = Delete\n3 = Cancel', '3');
-    if (action === '1') {
-      const newName = prompt('New name:', folderName);
-      if (newName && newName.trim() && newName.trim() !== folderName) {
-        this.renameFolder(folderId, newName.trim());
+    // Close any existing menu
+    document.querySelectorAll('.folder-context-menu').forEach(m => m.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'folder-context-menu';
+    menu.innerHTML = `
+      <button class="folder-context-menu-item" data-action="rename">
+        <i class="material-icons">edit</i> Rename
+      </button>
+      <div class="folder-context-menu-divider"></div>
+      <button class="folder-context-menu-item danger" data-action="delete">
+        <i class="material-icons">delete</i> Delete
+      </button>
+    `;
+
+    // Find the folder card to position relative to it
+    const folderCards = document.querySelectorAll('.folder-card');
+    let folderCard = null;
+    folderCards.forEach(card => {
+      const menuBtn = card.querySelector('.folder-card-menu');
+      if (menuBtn && menuBtn.getAttribute('onclick') && menuBtn.getAttribute('onclick').includes(folderId)) {
+        folderCard = card;
       }
-    } else if (action === '2') {
-      this.deleteFolderById(folderId);
+    });
+
+    if (folderCard) {
+      folderCard.style.position = 'relative';
+      folderCard.appendChild(menu);
+    } else {
+      document.body.appendChild(menu);
     }
+
+    // Handle actions
+    menu.querySelector('[data-action="rename"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.showRenameDialog(folderId, folderName);
+    });
+
+    menu.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.showDeleteConfirm(folderId, folderName);
+    });
+
+    // Close on outside click
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  }
+
+  showRenameDialog(folderId, currentName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'rename-modal-overlay';
+    overlay.innerHTML = `
+      <div class="rename-modal">
+        <h3>Rename Folder</h3>
+        <input type="text" id="rename-input" value="${currentName}" autofocus>
+        <div class="rename-modal-actions">
+          <button class="rename-cancel-btn">Cancel</button>
+          <button class="rename-save-btn">Rename</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#rename-input');
+    input.focus();
+    input.select();
+
+    const doRename = () => {
+      const newName = input.value.trim();
+      if (newName && newName !== currentName) {
+        this.renameFolder(folderId, newName);
+      }
+      overlay.remove();
+    };
+
+    overlay.querySelector('.rename-save-btn').addEventListener('click', doRename);
+    overlay.querySelector('.rename-cancel-btn').addEventListener('click', () => overlay.remove());
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') doRename(); });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  }
+
+  showDeleteConfirm(folderId, folderName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'rename-modal-overlay';
+    overlay.innerHTML = `
+      <div class="delete-confirm-modal">
+        <i class="material-icons">delete</i>
+        <h3>Delete "${folderName}"?</h3>
+        <p>Images inside will be moved to root.</p>
+        <div class="delete-confirm-actions">
+          <button class="delete-cancel-btn">Cancel</button>
+          <button class="delete-confirm-btn">Delete</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.delete-confirm-btn').addEventListener('click', () => {
+      overlay.remove();
+      this.deleteFolderById(folderId);
+    });
+    overlay.querySelector('.delete-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   }
 
   async renameFolder(folderId, newName) {
