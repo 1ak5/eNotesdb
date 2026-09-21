@@ -988,26 +988,200 @@ async backgroundPreload() {
         notebooks.forEach(notebook => {
             const item = document.createElement('div');
             item.className = 'notebook-item';
+            item.draggable = true;
+            item.dataset.id = notebook._id;
+            
+            const isLocked = notebook.isLocked;
+            const iconHtml = isLocked ? '<i class="material-icons" style="color: #5B6ABF;">lock</i>' : '';
+            const countHtml = isLocked ? '' : `<p>${notebook.noteCount} notes</p>`;
+            
             item.innerHTML = `
                 <div class="notebook-info">
-                    <h3>${notebook.name}</h3>
-                    <p>${notebook.noteCount} notes</p>
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        ${notebook.name} ${iconHtml}
+                    </h3>
+                    ${countHtml}
                 </div>
                 <div class="notebook-actions">
-                    <button class="delete-btn" onclick="app.deleteNotebook('${notebook._id}')">
-                        <i class="material-icons">delete</i>
+                    <button class="menu-btn" onclick="event.stopPropagation(); app.showNotebookMenu(event, '${notebook._id}', '${notebook.name.replace(/'/g, "\\'")}', ${isLocked})">
+                        <i class="material-icons">more_vert</i>
                     </button>
                 </div>
             `;
             
+            // Drag and drop event listeners
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', notebook._id);
+                item.classList.add('dragging');
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+            });
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const draggingItem = container.querySelector('.dragging');
+                if (!draggingItem || draggingItem === item) return;
+                
+                const box = item.getBoundingClientRect();
+                const offset = e.clientY - box.top - box.height / 2;
+                if (offset < 0) {
+                    container.insertBefore(draggingItem, item);
+                } else {
+                    container.insertBefore(draggingItem, item.nextSibling);
+                }
+            });
+            item.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const draggedId = e.dataTransfer.getData('text/plain');
+                if (!draggedId) return;
+                
+                // Save new order based on current DOM
+                const newItems = Array.from(container.querySelectorAll('.notebook-item'));
+                for (let i = 0; i < newItems.length; i++) {
+                    const id = newItems[i].dataset.id;
+                    const nb = this.cache.notebooks[this.currentSection].find(n => n._id === id);
+                    if (nb) nb.sortOrder = i;
+                    
+                    // Send to server in background
+                    fetch(`/api/notebooks/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sortOrder: i })
+                    }).catch(console.error);
+                }
+                
+                // Re-sort cache
+                this.cache.notebooks[this.currentSection].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            });
+            
             item.addEventListener('click', (e) => {
-                if (!e.target.closest('.delete-btn')) {
+                if (!e.target.closest('.notebook-actions') && !e.target.closest('.folder-context-menu')) {
                     this.openNotebook(notebook);
                 }
             });
             
             container.appendChild(item);
         });
+    }
+
+    showNotebookMenu(event, id, name, isLocked) {
+        document.querySelectorAll('.folder-context-menu').forEach(m => m.remove());
+
+        const menu = document.createElement('div');
+        menu.className = 'folder-context-menu';
+        menu.innerHTML = `
+            <button class="folder-context-menu-item" data-action="rename">
+                <i class="material-icons">edit</i> Rename
+            </button>
+            <button class="folder-context-menu-item" data-action="lock">
+                <i class="material-icons">${isLocked ? 'lock_open' : 'lock'}</i> ${isLocked ? 'Unlock' : 'Lock'}
+            </button>
+            <div class="folder-context-menu-divider"></div>
+            <button class="folder-context-menu-item danger" data-action="delete">
+                <i class="material-icons">delete</i> Delete
+            </button>
+        `;
+
+        const targetBtn = event.currentTarget;
+        const rect = targetBtn.getBoundingClientRect();
+        
+        // Position relative to window since menu will be appended to body
+        menu.style.position = 'fixed';
+        menu.style.top = (rect.bottom + window.scrollY) + 'px';
+        menu.style.left = (rect.right - 140) + 'px'; // 140px is min-width
+        menu.style.zIndex = '9999';
+        
+        document.body.appendChild(menu);
+
+        menu.querySelector('[data-action="rename"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.remove();
+            this.renameNotebookUI(id, name);
+        });
+
+        menu.querySelector('[data-action="lock"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.remove();
+            this.toggleNotebookLock(id, isLocked);
+        });
+
+        menu.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.remove();
+            this.deleteNotebook(id);
+        });
+
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    }
+
+    async renameNotebookUI(id, currentName) {
+        const newName = prompt('Enter new notebook name:', currentName);
+        if (!newName || newName.trim() === '' || newName === currentName) return;
+        
+        try {
+            const res = await fetch(`/api/notebooks/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName.trim() })
+            });
+            if (res.ok) {
+                const nb = await res.json();
+                const index = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
+                if (index > -1) {
+                    this.cache.notebooks[this.currentSection][index].name = nb.name;
+                    this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+                }
+            }
+        } catch (e) { console.error('Rename failed', e); }
+    }
+
+    async toggleNotebookLock(id, currentlyLocked) {
+        try {
+            if (!currentlyLocked) {
+                // To lock, check if password exists first
+                const lockCheck = await fetch('/api/check-lock-setup');
+                const lockData = lockCheck.ok ? await lockCheck.json() : { hasPassword: false };
+                if (!lockData.hasPassword) {
+                    alert('You need to setup a lock password in the Locked Notes section first!');
+                    return;
+                }
+            } else {
+                // To unlock, verify password
+                const pwd = prompt('Enter password to unlock:');
+                if (!pwd) return;
+                const verifyRes = await fetch('/api/verify-lock-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const verifyData = await verifyRes.json();
+                if (!verifyData.success) {
+                    alert('Incorrect password');
+                    return;
+                }
+            }
+
+            const res = await fetch(`/api/notebooks/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isLocked: !currentlyLocked })
+            });
+            
+            if (res.ok) {
+                const nb = await res.json();
+                const index = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
+                if (index > -1) {
+                    this.cache.notebooks[this.currentSection][index].isLocked = nb.isLocked;
+                    this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+                }
+            }
+        } catch (e) { console.error('Lock toggle failed', e); }
     }
 
     async addNotebook() {
@@ -1047,7 +1221,28 @@ async backgroundPreload() {
     }
 }
 
-    openNotebook(notebook) {
+    async openNotebook(notebook) {
+        if (notebook.isLocked) {
+            const pwd = prompt(`Enter password to open "${notebook.name}":`);
+            if (!pwd) return;
+            try {
+                const verifyRes = await fetch('/api/verify-lock-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const verifyData = await verifyRes.json();
+                if (!verifyData.success) {
+                    alert('Incorrect password');
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error verifying password');
+                return;
+            }
+        }
+
         this.currentNotebook = notebook;
         this.currentView = (this.currentSection === 'checklist') ? 'checklist' : 'notes';
         

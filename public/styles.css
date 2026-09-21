@@ -819,6 +819,30 @@ html, body {
     will-change: auto;
 }
 
+.notebook-item.dragging {
+    opacity: 0.5;
+    border: 2px dashed var(--primary-color);
+    box-shadow: none;
+}
+
+.menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+    background: rgba(91, 106, 191, 0.1);
+    color: var(--primary-color);
+}
+
 .note-item, .notebook-item, .checklist-item {
     contain: layout style paint;
     transform: translateZ(0);
