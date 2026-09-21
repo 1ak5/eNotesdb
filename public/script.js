@@ -447,6 +447,18 @@ async backgroundPreload() {
         // App events
         document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
         document.getElementById('back-btn').addEventListener('click', () => this.goBack());
+        const nbHeaderMenuBtn = document.getElementById('notebook-header-menu-btn');
+        if (nbHeaderMenuBtn) {
+            nbHeaderMenuBtn.addEventListener('click', (e) => {
+                if (!this.currentNotebook) return;
+                this.showNotebookMenu(
+                    e,
+                    this.currentNotebook._id,
+                    this.currentNotebook.name,
+                    this.currentNotebook.isLocked
+                );
+            });
+        }
         
         // INSTANT navigation with real-time updates
         document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -868,6 +880,7 @@ async backgroundPreload() {
         
         // Clear any modal or edit state
         document.getElementById('back-btn')?.classList.add('hidden');
+        document.getElementById('notebook-header-menu-btn')?.classList.add('hidden');
         document.getElementById('header-title').textContent = 'Regular';
     }
 
@@ -887,6 +900,7 @@ async backgroundPreload() {
     
     // Hide back button INSTANTLY
     document.getElementById('back-btn').classList.add('hidden');
+    document.getElementById('notebook-header-menu-btn')?.classList.add('hidden');
     
     // Update username visibility
     this.updateUsernameVisibility();
@@ -1085,10 +1099,9 @@ async backgroundPreload() {
         const targetBtn = event.currentTarget;
         const rect = targetBtn.getBoundingClientRect();
         
-        // Position relative to window since menu will be appended to body
         menu.style.position = 'fixed';
         menu.style.top = (rect.bottom + window.scrollY) + 'px';
-        menu.style.left = (rect.right - 140) + 'px'; // 140px is min-width
+        menu.style.left = (rect.right - 140) + 'px';
         menu.style.zIndex = '9999';
         
         document.body.appendChild(menu);
@@ -1096,7 +1109,7 @@ async backgroundPreload() {
         menu.querySelector('[data-action="rename"]').addEventListener('click', (e) => {
             e.stopPropagation();
             menu.remove();
-            this.renameNotebookUI(id, name);
+            this.showNotebookRenameModal(id, name);
         });
 
         menu.querySelector('[data-action="lock"]').addEventListener('click', (e) => {
@@ -1108,7 +1121,7 @@ async backgroundPreload() {
         menu.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
             e.stopPropagation();
             menu.remove();
-            this.deleteNotebook(id);
+            this.showNotebookDeleteConfirm(id, name);
         });
 
         const closeMenu = (e) => {
@@ -1120,68 +1133,339 @@ async backgroundPreload() {
         setTimeout(() => document.addEventListener('click', closeMenu), 0);
     }
 
-    async renameNotebookUI(id, currentName) {
-        const newName = prompt('Enter new notebook name:', currentName);
-        if (!newName || newName.trim() === '' || newName === currentName) return;
-        
-        try {
-            const res = await fetch(`/api/notebooks/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName.trim() })
-            });
-            if (res.ok) {
-                const nb = await res.json();
-                const index = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
-                if (index > -1) {
-                    this.cache.notebooks[this.currentSection][index].name = nb.name;
+    showNotebookRenameModal(id, currentName) {
+        document.querySelectorAll('.rename-modal-overlay').forEach(m => m.remove());
+
+        const overlay = document.createElement('div');
+        overlay.className = 'rename-modal-overlay';
+        overlay.innerHTML = `
+            <div class="rename-modal">
+                <h3>Rename Notebook</h3>
+                <input type="text" id="notebook-rename-input" value="${currentName}" autofocus>
+                <div class="rename-modal-actions">
+                    <button class="rename-cancel-btn">Cancel</button>
+                    <button class="rename-save-btn">Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const input = overlay.querySelector('#notebook-rename-input');
+        input.focus();
+        input.select();
+
+        const doRename = async () => {
+            const newName = input.value.trim();
+            if (!newName || newName === currentName) {
+                overlay.remove();
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/notebooks/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                if (res.ok) {
+                    const nb = await res.json();
+                    if (this.cache.notebooks[this.currentSection]) {
+                        const idx = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
+                        if (idx > -1) this.cache.notebooks[this.currentSection][idx].name = nb.name;
+                    }
+                    if (this.currentNotebook && this.currentNotebook._id === id) {
+                        this.currentNotebook.name = nb.name;
+                        document.getElementById('header-title').textContent = nb.name;
+                    }
                     this.renderNotebooks(this.cache.notebooks[this.currentSection]);
                 }
+            } catch (e) {
+                console.error('Rename failed', e);
             }
-        } catch (e) { console.error('Rename failed', e); }
+            overlay.remove();
+        };
+
+        overlay.querySelector('.rename-save-btn').addEventListener('click', doRename);
+        overlay.querySelector('.rename-cancel-btn').addEventListener('click', () => overlay.remove());
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') doRename(); });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     }
 
-    async toggleNotebookLock(id, currentlyLocked) {
-        try {
-            if (!currentlyLocked) {
-                // To lock, check if password exists first
-                const lockCheck = await fetch('/api/check-lock-setup');
-                const lockData = lockCheck.ok ? await lockCheck.json() : { hasPassword: false };
-                if (!lockData.hasPassword) {
-                    alert('You need to setup a lock password in the Locked Notes section first!');
-                    return;
+    showNotebookDeleteConfirm(id, notebookName) {
+        document.querySelectorAll('.rename-modal-overlay').forEach(m => m.remove());
+
+        const overlay = document.createElement('div');
+        overlay.className = 'rename-modal-overlay';
+        overlay.innerHTML = `
+            <div class="delete-confirm-modal">
+                <i class="material-icons">delete</i>
+                <h3>Delete "${notebookName}"?</h3>
+                <p>All notes inside this notebook will be deleted.</p>
+                <div class="delete-confirm-actions">
+                    <button class="delete-cancel-btn">Cancel</button>
+                    <button class="delete-confirm-btn">Delete</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('.delete-confirm-btn').addEventListener('click', async () => {
+            overlay.remove();
+            try {
+                const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    if (this.currentNotebook && this.currentNotebook._id === id) {
+                        this.goBack();
+                    }
                 }
-            } else {
-                // To unlock, verify password
-                const pwd = prompt('Enter password to unlock:');
-                if (!pwd) return;
+            } catch (error) {
+                console.error('Delete notebook failed:', error);
+            }
+        });
+
+        overlay.querySelector('.delete-cancel-btn').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    showLockPasswordModal({ title, message, onSuccess }) {
+        document.querySelectorAll('.lock-modal-overlay').forEach(m => m.remove());
+
+        const overlay = document.createElement('div');
+        overlay.className = 'lock-modal-overlay';
+        overlay.innerHTML = `
+            <div class="lock-modal">
+                <div class="lock-modal-icon">
+                    <i class="material-icons">lock</i>
+                </div>
+                <h3>${title || 'Locked Notebook'}</h3>
+                <p>${message || 'Enter your password to access this notebook'}</p>
+                <div class="lock-modal-input-wrap">
+                    <i class="material-icons lock-input-key">key</i>
+                    <input type="password" id="lock-modal-input" placeholder="Password" autofocus autocomplete="current-password">
+                    <button type="button" class="lock-pwd-toggle" tabindex="-1">
+                        <i class="material-icons">visibility</i>
+                    </button>
+                </div>
+                <div class="lock-modal-error hidden">
+                    <i class="material-icons">error_outline</i>
+                    <span class="error-text">Incorrect password</span>
+                </div>
+                <div class="lock-modal-actions">
+                    <button class="lock-cancel-btn">Cancel</button>
+                    <button class="lock-submit-btn">Unlock</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const modal = overlay.querySelector('.lock-modal');
+        const input = overlay.querySelector('#lock-modal-input');
+        const toggleBtn = overlay.querySelector('.lock-pwd-toggle');
+        const errorDiv = overlay.querySelector('.lock-modal-error');
+        const errorText = overlay.querySelector('.error-text');
+        const submitBtn = overlay.querySelector('.lock-submit-btn');
+        const cancelBtn = overlay.querySelector('.lock-cancel-btn');
+
+        input.focus();
+
+        let isObscured = true;
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isObscured = !isObscured;
+            input.type = isObscured ? 'password' : 'text';
+            toggleBtn.querySelector('i').textContent = isObscured ? 'visibility' : 'visibility_off';
+        });
+
+        const showError = (msg) => {
+            errorText.textContent = msg;
+            errorDiv.classList.remove('hidden');
+            modal.classList.remove('shake');
+            void modal.offsetWidth;
+            modal.classList.add('shake');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Unlock';
+            input.select();
+        };
+
+        const doSubmit = async () => {
+            const password = input.value.trim();
+            if (!password) {
+                showError('Password cannot be empty');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Verifying...';
+            errorDiv.classList.add('hidden');
+
+            try {
                 const verifyRes = await fetch('/api/verify-lock-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await verifyRes.json();
+                if (data.success) {
+                    overlay.remove();
+                    if (onSuccess) onSuccess();
+                } else {
+                    showError('Incorrect password');
+                }
+            } catch (err) {
+                console.error(err);
+                showError('Verification failed');
+            }
+        };
+
+        submitBtn.addEventListener('click', doSubmit);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') doSubmit();
+        });
+
+        cancelBtn.addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+    }
+
+    showSetLockPasswordModal({ onSuccess }) {
+        document.querySelectorAll('.lock-modal-overlay').forEach(m => m.remove());
+
+        const overlay = document.createElement('div');
+        overlay.className = 'lock-modal-overlay';
+        overlay.innerHTML = `
+            <div class="lock-modal">
+                <div class="lock-modal-icon">
+                    <i class="material-icons">lock</i>
+                </div>
+                <h3>Set Lock Password</h3>
+                <p>Create a password to protect your locked notes and notebooks</p>
+                <div class="lock-modal-input-wrap">
+                    <i class="material-icons lock-input-key">key</i>
+                    <input type="password" id="set-lock-pwd" placeholder="New password" autofocus>
+                </div>
+                <div class="lock-modal-input-wrap" style="margin-top: 6px;">
+                    <i class="material-icons lock-input-key">key</i>
+                    <input type="password" id="set-lock-pwd-confirm" placeholder="Confirm password">
+                </div>
+                <div class="lock-modal-error hidden">
+                    <i class="material-icons">error_outline</i>
+                    <span class="error-text">Passwords do not match</span>
+                </div>
+                <div class="lock-modal-actions">
+                    <button class="lock-cancel-btn">Cancel</button>
+                    <button class="lock-submit-btn">Set Password</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const modal = overlay.querySelector('.lock-modal');
+        const pwdInput = overlay.querySelector('#set-lock-pwd');
+        const confirmInput = overlay.querySelector('#set-lock-pwd-confirm');
+        const errorDiv = overlay.querySelector('.lock-modal-error');
+        const errorText = overlay.querySelector('.error-text');
+        const submitBtn = overlay.querySelector('.lock-submit-btn');
+        const cancelBtn = overlay.querySelector('.lock-cancel-btn');
+
+        pwdInput.focus();
+
+        const showError = (msg) => {
+            errorText.textContent = msg;
+            errorDiv.classList.remove('hidden');
+            modal.classList.remove('shake');
+            void modal.offsetWidth;
+            modal.classList.add('shake');
+            submitBtn.disabled = false;
+        };
+
+        const doSubmit = async () => {
+            const pwd = pwdInput.value.trim();
+            const confirm = confirmInput.value.trim();
+
+            if (!pwd) {
+                showError('Password cannot be empty');
+                return;
+            }
+            if (pwd !== confirm) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Setting...';
+
+            try {
+                const res = await fetch('/api/set-lock-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password: pwd })
                 });
-                const verifyData = await verifyRes.json();
-                if (!verifyData.success) {
-                    alert('Incorrect password');
+                if (res.ok) {
+                    overlay.remove();
+                    if (onSuccess) onSuccess();
+                } else {
+                    showError('Failed to set password');
+                }
+            } catch (err) {
+                showError('Something went wrong');
+            }
+        };
+
+        submitBtn.addEventListener('click', doSubmit);
+        confirmInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') doSubmit(); });
+        cancelBtn.addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    async toggleNotebookLock(id, currentlyLocked) {
+        if (!currentlyLocked) {
+            try {
+                const lockCheck = await fetch('/api/check-lock-setup');
+                const lockData = lockCheck.ok ? await lockCheck.json() : { hasPassword: false };
+                if (!lockData.hasPassword) {
+                    this.showSetLockPasswordModal({
+                        onSuccess: () => this._doToggleLock(id, true)
+                    });
                     return;
                 }
+            } catch (e) {
+                console.error(e);
             }
+            this._doToggleLock(id, true);
+        } else {
+            this.showLockPasswordModal({
+                title: 'Unlock Notebook',
+                message: 'Enter your password to unlock this notebook',
+                onSuccess: () => this._doToggleLock(id, false)
+            });
+        }
+    }
 
+    async _doToggleLock(id, willLock) {
+        try {
             const res = await fetch(`/api/notebooks/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isLocked: !currentlyLocked })
+                body: JSON.stringify({ isLocked: willLock })
             });
-            
             if (res.ok) {
                 const nb = await res.json();
-                const index = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
-                if (index > -1) {
-                    this.cache.notebooks[this.currentSection][index].isLocked = nb.isLocked;
-                    this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+                if (this.cache.notebooks[this.currentSection]) {
+                    const idx = this.cache.notebooks[this.currentSection].findIndex(n => n._id === id);
+                    if (idx > -1) {
+                        this.cache.notebooks[this.currentSection][idx].isLocked = nb.isLocked;
+                        this.renderNotebooks(this.cache.notebooks[this.currentSection]);
+                    }
+                }
+                if (this.currentNotebook && this.currentNotebook._id === id) {
+                    this.currentNotebook.isLocked = nb.isLocked;
                 }
             }
-        } catch (e) { console.error('Lock toggle failed', e); }
+        } catch (e) {
+            console.error('Lock toggle failed', e);
+        }
     }
 
     async addNotebook() {
@@ -1208,47 +1492,39 @@ async backgroundPreload() {
     }
 }
 
-    async deleteNotebook(id) {
-    if (!confirm('Delete this notebook and all its notes?')) return;
-    
-    try {
-        const response = await fetch(`/api/notebooks/${id}`, { method: 'DELETE' });
-        if (!response.ok) {
-            console.error('Failed to delete notebook');
+    deleteNotebook(id) {
+        let name = 'this notebook';
+        if (this.cache.notebooks[this.currentSection]) {
+            const nb = this.cache.notebooks[this.currentSection].find(n => n._id === id);
+            if (nb) name = nb.name;
         }
-    } catch (error) {
-        console.error('Failed to delete notebook:', error);
+        this.showNotebookDeleteConfirm(id, name);
     }
-}
 
-    async openNotebook(notebook) {
+    openNotebook(notebook) {
         if (notebook.isLocked) {
-            const pwd = prompt(`Enter password to open "${notebook.name}":`);
-            if (!pwd) return;
-            try {
-                const verifyRes = await fetch('/api/verify-lock-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: pwd })
-                });
-                const verifyData = await verifyRes.json();
-                if (!verifyData.success) {
-                    alert('Incorrect password');
-                    return;
+            this.showLockPasswordModal({
+                title: `Unlock "${notebook.name}"`,
+                message: 'Enter your password to access this locked notebook',
+                onSuccess: () => {
+                    this._proceedOpenNotebook(notebook);
                 }
-            } catch (e) {
-                console.error(e);
-                alert('Error verifying password');
-                return;
-            }
+            });
+            return;
         }
+        this._proceedOpenNotebook(notebook);
+    }
 
+    _proceedOpenNotebook(notebook) {
         this.currentNotebook = notebook;
         this.currentView = (this.currentSection === 'checklist') ? 'checklist' : 'notes';
         
         // Update header INSTANTLY
         document.getElementById('header-title').textContent = notebook.name;
         document.getElementById('back-btn').classList.remove('hidden');
+        
+        const headerMenuBtn = document.getElementById('notebook-header-menu-btn');
+        if (headerMenuBtn) headerMenuBtn.classList.remove('hidden');
         
         // Update username visibility (hide when inside notebook)
         this.updateUsernameVisibility();
@@ -1286,6 +1562,9 @@ async backgroundPreload() {
             document.getElementById('header-title').textContent = 
                 this.currentSection.charAt(0).toUpperCase() + this.currentSection.slice(1);
             document.getElementById('back-btn').classList.add('hidden');
+            
+            const headerMenuBtn = document.getElementById('notebook-header-menu-btn');
+            if (headerMenuBtn) headerMenuBtn.classList.add('hidden');
             
             // Update username visibility (show when back to home)
             this.updateUsernameVisibility();
