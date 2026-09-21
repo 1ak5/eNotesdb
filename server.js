@@ -69,6 +69,8 @@ const notebookSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   section: { type: String, enum: ['regular', 'checklist'], required: true },
+  isLocked: { type: Boolean, default: false },
+  sortOrder: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -270,7 +272,7 @@ app.get('/api/check-session', async (req, res) => {
 app.get('/api/notebooks/:section', requireAuth, async (req, res) => {
   try {
     const { section } = req.params;
-    const notebooks = await Notebook.find({ userId: req.session.userId, section }).lean().sort({ createdAt: -1 });
+    const notebooks = await Notebook.find({ userId: req.session.userId, section }).lean().sort({ sortOrder: 1, createdAt: -1 });
     const withCounts = await Promise.all(notebooks.map(async (nb) => {
       const c = await Note.countDocuments({ notebookId: nb._id });
       return { ...nb, noteCount: c };
@@ -286,6 +288,20 @@ app.post('/api/notebooks', requireAuth, async (req, res) => {
     await notebook.save();
     broadcastNotebookUpdate(req.session.userId, section);
     res.json(notebook);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.patch('/api/notebooks/:id', requireAuth, async (req, res) => {
+  try {
+    const { name, isLocked, sortOrder } = req.body;
+    const nb = await Notebook.findOne({ _id: req.params.id, userId: req.session.userId });
+    if (!nb) return res.status(404).json({ error: 'Not found' });
+    if (name !== undefined) nb.name = name;
+    if (isLocked !== undefined) nb.isLocked = isLocked;
+    if (sortOrder !== undefined) nb.sortOrder = sortOrder;
+    await nb.save();
+    broadcastNotebookUpdate(req.session.userId, nb.section);
+    res.json(nb);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
