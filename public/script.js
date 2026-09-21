@@ -1239,9 +1239,13 @@ async backgroundPreload() {
                 </div>
                 <h3>${title || 'Locked Notebook'}</h3>
                 <p>${message || 'Enter your password to access this notebook'}</p>
+                <form autocomplete="off" onsubmit="return false;" style="display:none;">
+                    <input type="text" name="fakeusernameremembered" autocomplete="username">
+                    <input type="password" name="fakepasswordremembered" autocomplete="current-password">
+                </form>
                 <div class="lock-modal-input-wrap">
                     <i class="material-icons lock-input-key">key</i>
-                    <input type="password" id="lock-modal-input" placeholder="Password" autofocus autocomplete="current-password">
+                    <input type="password" id="lock-modal-input" placeholder="Password" autofocus autocomplete="new-password" data-lpignore="true" data-form-type="other" value="">
                     <button type="button" class="lock-pwd-toggle" tabindex="-1">
                         <i class="material-icons">visibility</i>
                     </button>
@@ -1266,7 +1270,11 @@ async backgroundPreload() {
         const submitBtn = overlay.querySelector('.lock-submit-btn');
         const cancelBtn = overlay.querySelector('.lock-cancel-btn');
 
+        // Force empty value and defeat browser autofill
+        input.value = '';
         input.focus();
+        setTimeout(() => { if (input) input.value = ''; }, 40);
+        setTimeout(() => { if (input) input.value = ''; }, 150);
 
         let isObscured = true;
         toggleBtn.addEventListener('click', (e) => {
@@ -1341,13 +1349,17 @@ async backgroundPreload() {
                 </div>
                 <h3>Set Lock Password</h3>
                 <p>Create a password to protect your locked notes and notebooks</p>
+                <form autocomplete="off" onsubmit="return false;" style="display:none;">
+                    <input type="text" name="fakeusernameremembered" autocomplete="username">
+                    <input type="password" name="fakepasswordremembered" autocomplete="current-password">
+                </form>
                 <div class="lock-modal-input-wrap">
                     <i class="material-icons lock-input-key">key</i>
-                    <input type="password" id="set-lock-pwd" placeholder="New password" autofocus>
+                    <input type="password" id="set-lock-pwd" placeholder="New password" autofocus autocomplete="new-password" data-lpignore="true">
                 </div>
                 <div class="lock-modal-input-wrap" style="margin-top: 6px;">
                     <i class="material-icons lock-input-key">key</i>
-                    <input type="password" id="set-lock-pwd-confirm" placeholder="Confirm password">
+                    <input type="password" id="set-lock-pwd-confirm" placeholder="Confirm password" autocomplete="new-password" data-lpignore="true">
                 </div>
                 <div class="lock-modal-error hidden">
                     <i class="material-icons">error_outline</i>
@@ -1369,7 +1381,11 @@ async backgroundPreload() {
         const submitBtn = overlay.querySelector('.lock-submit-btn');
         const cancelBtn = overlay.querySelector('.lock-cancel-btn');
 
+        pwdInput.value = '';
+        confirmInput.value = '';
         pwdInput.focus();
+        setTimeout(() => { if (pwdInput) pwdInput.value = ''; if (confirmInput) confirmInput.value = ''; }, 40);
+        setTimeout(() => { if (pwdInput) pwdInput.value = ''; if (confirmInput) confirmInput.value = ''; }, 150);
 
         const showError = (msg) => {
             errorText.textContent = msg;
