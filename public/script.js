@@ -215,39 +215,45 @@ class NotesApp {
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
-            top: 80px;
+            top: 75px;
             right: 20px;
-            background: #89999A;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 14px;
+            background: #FFFFFF;
+            color: #1D1D1F;
+            border: 1px solid #E5E5EA;
+            padding: 9px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
             z-index: 10000;
             opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateY(-8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 4px 14px rgba(29, 29, 31, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
         `;
-        notification.textContent = message;
+        notification.innerHTML = `<i class="material-icons" style="font-size: 16px; color: #5B6ABF;">sync</i><span>${message}</span>`;
         
         document.body.appendChild(notification);
         
         // Animate in
         setTimeout(() => {
             notification.style.opacity = '1';
-            notification.style.transform = 'translateX(0)';
-        }, 100);
+            notification.style.transform = 'translateY(0)';
+        }, 50);
         
         // Animate out and remove
         setTimeout(() => {
             notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
+            notification.style.transform = 'translateY(-8px)';
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
-            }, 300);
-        }, 2000);
+            }, 250);
+        }, 2200);
     }
 
     // Super fast loading skeleton
