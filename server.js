@@ -130,8 +130,16 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: MONGODB_URI }),
-  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, secure: false, httpOnly: true }
+  rolling: true,
+  store: MongoStore.create({ 
+    mongoUrl: MONGODB_URI,
+    ttl: 365 * 24 * 60 * 60 // 1 year session in MongoDB
+  }),
+  cookie: { 
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year cookie
+    secure: false, 
+    httpOnly: true 
+  }
 });
 
 app.use(sessionMiddleware);
