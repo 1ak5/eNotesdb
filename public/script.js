@@ -2326,11 +2326,16 @@ if (response.ok) {
 
       // Filter by folder
       if (this.currentImageFolder) {
-        images = images.filter(img => img.folderId === this.currentImageFolder);
+        images = images.filter(img => {
+          const fId = (img.folderId && typeof img.folderId === 'object') ? img.folderId._id : img.folderId;
+          return fId && String(fId) === String(this.currentImageFolder);
+        });
       } else {
         // In root, show only images NOT in any folder
-        const folderIds = new Set((section === 'locked' ? this.lockedImageFolders : this.imageFolders).map(f => f._id));
-        images = images.filter(img => !img.folderId || !folderIds.has(img.folderId));
+        images = images.filter(img => {
+          const fId = (img.folderId && typeof img.folderId === 'object') ? img.folderId._id : img.folderId;
+          return !fId;
+        });
       }
 
       const targetGrid = section === 'locked' ? lockedGrid : grid;
@@ -2382,7 +2387,10 @@ if (response.ok) {
         const allImages = imgRes.ok ? await imgRes.json() : [];
 
         foldersGrid.innerHTML = folders.map(f => {
-          const folderImages = allImages.filter(img => img.folderId === f._id);
+          const folderImages = allImages.filter(img => {
+            const fId = (img.folderId && typeof img.folderId === 'object') ? img.folderId._id : img.folderId;
+            return fId && String(fId) === String(f._id);
+          });
           const count = folderImages.length;
           return `
             <div class="folder-card" onclick="app.enterFolder('${f._id}', '${f.name.replace(/'/g, "\\'")}')">
