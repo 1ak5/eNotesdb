@@ -25,6 +25,36 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path_mod = require('path');
+const nodemailer = require('nodemailer');
+
+// ─── EMAIL TRANSPORTER ──────────────────────────────────
+const mailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com',
+    pass: process.env.SMTP_PASS || 'vjhiynnrulydwnqk'
+  }
+});
+
+const sendResetEmail = async (toEmail, username, otp) => {
+  const mailOptions = {
+    from: `"eNotes App" <${process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com'}>`,
+    to: toEmail,
+    subject: 'eNotes - Password Reset OTP',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #EFECE4;">
+        <h2 style="color: #1A1A1A; margin-top: 0;">eNotes Account Recovery</h2>
+        <p style="color: #555555; font-size: 15px;">Hello <b>${username}</b>,</p>
+        <p style="color: #555555; font-size: 15px;">You requested to reset your password. Use the OTP code below to reset your password. This OTP is valid for <b>10 minutes</b>.</p>
+        <div style="background: #F8F7F4; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; border: 1px dashed #D0CCC0;">
+          <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1A1A1A;">${otp}</span>
+        </div>
+        <p style="color: #888888; font-size: 13px; margin-bottom: 0;">If you did not request this, you can safely ignore this email. Never share this code with anyone.</p>
+      </div>
+    `
+  };
+  return await mailTransporter.sendMail(mailOptions);
+};
 
 // ─── MongoDB Connection ─────────────────────────────────
 const connectDB = async () => {
@@ -62,6 +92,11 @@ process.on('SIGINT', async () => {
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   pin: { type: String, required: true },
+  email: { type: String, default: null, trim: true, lowercase: true },
+  resetOtp: {
+    code: { type: String, default: null },
+    expiresAt: { type: Date, default: null }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -226,21 +261,27 @@ const broadcastImagesUpdate = async (userId) => {
 
 app.post('/api/register', async (req, res) => {
   try {
-    const { username, pin } = req.body;
-    const existing = await User.findOne({ username });
+    const { username, pin, email } = req.body;
+    if (!username || !pin) return res.status(400).json({ error: 'Username and password are required' });
+    const existing = await User.findOne({ username: username.trim() });
     if (existing) return res.status(400).json({ error: 'Username already exists' });
-    // Store password as plain text (no hashing)
-    const user = new User({ username, pin });
+    
+    let cleanEmail = null;
+    if (email && email.trim()) {
+      cleanEmail = email.trim().toLowerCase();
+    }
+
+    const user = new User({ username: username.trim(), pin, email: cleanEmail });
     await user.save();
     req.session.userId = user._id;
-    res.json({ success: true, userId: user._id });
+    res.json({ success: true, userId: user._id, email: user.email });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/login', async (req, res) => {
   try {
     const { username, pin } = req.body;
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: username ? username.trim() : '' });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     // Support both old hashed passwords and new plain text passwords
     let ok = false;
@@ -253,7 +294,7 @@ app.post('/api/login', async (req, res) => {
     }
     if (!ok) return res.status(400).json({ error: 'Invalid credentials' });
     req.session.userId = user._id;
-    res.json({ success: true, userId: user._id });
+    res.json({ success: true, userId: user._id, email: user.email || null });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -265,13 +306,128 @@ app.post('/api/logout', (req, res) => {
 app.get('/api/check-session', async (req, res) => {
   if (req.session.userId) {
     try {
-      const user = await User.findById(req.session.userId).select('username');
-      res.json({ authenticated: true, userId: req.session.userId, username: user ? user.username : 'User' });
+      const user = await User.findById(req.session.userId).select('username email');
+      res.json({ 
+        authenticated: true, 
+        userId: req.session.userId, 
+        username: user ? user.username : 'User',
+        email: user ? (user.email || null) : null
+      });
     } catch (e) {
-      res.json({ authenticated: true, userId: req.session.userId, username: 'User' });
+      res.json({ authenticated: true, userId: req.session.userId, username: 'User', email: null });
     }
   } else {
     res.json({ authenticated: false });
+  }
+});
+
+// Connect or update Gmail for logged in user
+app.post('/api/connect-email', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findById(req.session.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    if (!email || !email.trim()) {
+      user.email = null;
+      await user.save();
+      return res.json({ success: true, email: null, message: 'Gmail disconnected successfully' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    // Validate basic email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    user.email = cleanEmail;
+    await user.save();
+    res.json({ success: true, email: user.email, message: 'Gmail connected successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Forgot Password - Step 1: Send OTP to connected Gmail
+app.post('/api/forgot-password/send-otp', async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const user = await User.findOne({ username: username.trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with this username' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ 
+        error: 'No Gmail connected to this account. Password cannot be reset automatically.' 
+      });
+    }
+
+    // Generate 6-digit random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.resetOtp = { code: otp, expiresAt };
+    await user.save();
+
+    // Send email
+    await sendResetEmail(user.email, user.username, otp);
+
+    // Mask email for security (e.g. ad***470@gmail.com)
+    const parts = user.email.split('@');
+    const namePart = parts[0];
+    const maskedName = namePart.length > 3 
+      ? namePart.substring(0, 2) + '***' + namePart.slice(-2) 
+      : namePart.substring(0, 1) + '***';
+    const maskedEmail = `${maskedName}@${parts[1]}`;
+
+    res.json({ 
+      success: true, 
+      message: `OTP sent successfully to ${maskedEmail}`,
+      maskedEmail 
+    });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ error: 'Failed to send OTP email: ' + error.message });
+  }
+});
+
+// Forgot Password - Step 2: Verify OTP and Reset Password
+app.post('/api/forgot-password/verify-reset', async (req, res) => {
+  try {
+    const { username, otp, newPin } = req.body;
+    if (!username || !otp || !newPin) {
+      return res.status(400).json({ error: 'Username, OTP, and new password are required' });
+    }
+
+    const user = await User.findOne({ username: username.trim() });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!user.resetOtp || !user.resetOtp.code || !user.resetOtp.expiresAt) {
+      return res.status(400).json({ error: 'No reset request found. Please request a new OTP.' });
+    }
+
+    if (new Date() > new Date(user.resetOtp.expiresAt)) {
+      return res.status(400).json({ error: 'OTP has expired. Please request a new OTP.' });
+    }
+
+    if (user.resetOtp.code !== otp.trim()) {
+      return res.status(400).json({ error: 'Invalid OTP code. Please check and try again.' });
+    }
+
+    // OTP is valid! Reset password to new plain text pin
+    user.pin = newPin.trim();
+    user.resetOtp = { code: null, expiresAt: null }; // Clear OTP
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successful! You can now log in.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

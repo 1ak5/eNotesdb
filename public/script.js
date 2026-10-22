@@ -449,6 +449,34 @@ async backgroundPreload() {
         
         document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
+
+        // Forgot password events
+        const forgotLink = document.getElementById('forgot-password-link');
+        if (forgotLink) {
+            forgotLink.addEventListener('click', () => this.showForgotPasswordStep1());
+        }
+        const backToLoginBtn = document.getElementById('back-to-login-btn');
+        if (backToLoginBtn) {
+            backToLoginBtn.addEventListener('click', () => this.switchAuthTab('login'));
+        }
+        const forgotForm = document.getElementById('forgot-form');
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', (e) => this.handleSendResetOtp(e));
+        }
+        const resendOtpBtn = document.getElementById('resend-otp-btn');
+        if (resendOtpBtn) {
+            resendOtpBtn.addEventListener('click', (e) => this.handleSendResetOtp(e));
+        }
+        const verifyResetForm = document.getElementById('verify-reset-form');
+        if (verifyResetForm) {
+            verifyResetForm.addEventListener('submit', (e) => this.handleVerifyResetOtp(e));
+        }
+
+        // Connect Gmail in settings
+        const connectGmailBtn = document.getElementById('connect-gmail-btn');
+        if (connectGmailBtn) {
+            connectGmailBtn.addEventListener('click', () => this.handleConnectGmail());
+        }
         
         // App events
         document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
@@ -739,7 +767,7 @@ async backgroundPreload() {
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, pin })
+                body: JSON.stringify({ username, pin, email })
             });
             
             const data = await response.json();
@@ -748,6 +776,8 @@ async backgroundPreload() {
                 // Set new user data
                 this.userId = data.userId;
                 this.username = username;
+                this.email = data.email || null;
+                this.updateGmailUI();
                 document.getElementById('username-display').textContent = `Hi ${username}`;
                 
                 // Show app screen first
@@ -2907,8 +2937,152 @@ if (response.ok) {
   }
 
   // ===== SETTINGS =====
+    updateGmailUI() {
+        const statusText = document.getElementById('gmail-status-text');
+        const statusSub = document.getElementById('gmail-status-sub');
+        const connectBtn = document.getElementById('connect-gmail-btn');
+        if (!statusText || !connectBtn) return;
+
+        if (this.email) {
+            statusText.textContent = this.email;
+            statusSub.textContent = 'Connected for password recovery';
+            connectBtn.textContent = 'Change';
+        } else {
+            statusText.textContent = 'Connect Gmail';
+            statusSub.textContent = 'Not connected (cannot reset password)';
+            connectBtn.textContent = 'Connect';
+        }
+    }
+
+    async handleConnectGmail() {
+        const current = this.email || '';
+        const promptMsg = this.email 
+            ? 'Enter new Gmail address (or leave empty to disconnect):' 
+            : 'Enter your Gmail address to connect:';
+        const entered = prompt(promptMsg, current);
+        if (entered === null) return;
+
+        try {
+            const res = await fetch('/api/connect-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: entered.trim() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.email = data.email;
+                this.updateGmailUI();
+                alert(data.message);
+            } else {
+                alert(data.error || 'Failed to update Gmail');
+            }
+        } catch (err) {
+            alert('Error updating Gmail: ' + err.message);
+        }
+    }
+
+    showForgotPasswordStep1() {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('verify-reset-form').classList.add('hidden');
+        document.getElementById('forgot-form').classList.remove('hidden');
+        
+        const loginUser = document.getElementById('login-username').value;
+        if (loginUser) {
+            document.getElementById('forgot-username').value = loginUser;
+        }
+    }
+
+    async handleSendResetOtp(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const username = document.getElementById('forgot-username').value.trim();
+        if (!username) {
+            alert('Please enter your username');
+            return;
+        }
+
+        const sendBtn = document.getElementById('send-otp-btn');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+        }
+
+        try {
+            const res = await fetch('/api/forgot-password/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'OTP sent successfully!');
+                document.getElementById('forgot-form').classList.add('hidden');
+                document.getElementById('verify-reset-form').classList.remove('hidden');
+                const info = document.getElementById('otp-sent-info');
+                if (info) info.textContent = 'OTP sent to ' + (data.maskedEmail || 'your Gmail');
+            } else {
+                alert(data.error || 'Failed to send OTP');
+            }
+        } catch (err) {
+            alert('Network error sending OTP: ' + err.message);
+        } finally {
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send OTP';
+            }
+        }
+    }
+
+    async handleVerifyResetOtp(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const username = document.getElementById('forgot-username').value.trim();
+        const otp = document.getElementById('reset-otp-input').value.trim();
+        const newPin = document.getElementById('reset-new-pin').value;
+
+        if (!otp || !newPin) {
+            alert('Please enter both OTP and your new PIN');
+            return;
+        }
+
+        const submitBtn = document.getElementById('submit-reset-btn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Resetting...';
+        }
+
+        try {
+            const res = await fetch('/api/forgot-password/verify-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, otp, newPin })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Password reset successful! Please log in with your new PIN.');
+                this.switchAuthTab('login');
+                document.getElementById('login-username').value = username;
+                document.getElementById('login-pin').value = '';
+            } else {
+                alert(data.error || 'Password reset failed');
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Reset Password';
+            }
+        }
+    }
+
+    openSettings() {
+        document.getElementById('settings-username').textContent = this.username || 'User';
+        this.updateGmailUI();
+        document.getElementById('settings-modal').classList.remove('hidden');
+    }
   openSettings() {
     document.getElementById('settings-username').textContent = this.username || 'User';
+    this.updateGmailUI();
     document.getElementById('settings-modal').classList.remove('hidden');
   }
 
@@ -2921,3 +3095,4 @@ if (response.ok) {
 
 // Initialize app
 const app = new NotesApp();
+

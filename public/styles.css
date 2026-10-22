@@ -2237,3 +2237,45 @@ html, body {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+/* Forgot Password & Gmail UI */
+.auth-forgot-link-wrap {
+    text-align: right;
+    margin: -8px 0 12px 0;
+}
+.text-link-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+.text-link-btn:hover {
+    color: #1a1a1a;
+}
+.auth-subtext {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+.auth-buttons-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.auth-buttons-row button {
+    flex: 1;
+}
+.secondary-btn {
+    background: #EFECE4 !important;
+    color: #1A1A1A !important;
+    border: 1px solid #D0CCC0 !important;
+    cursor: pointer;
+}
+.secondary-btn:hover {
+    background: #E6E2D6 !important;
+}
