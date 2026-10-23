@@ -819,10 +819,13 @@ async backgroundPreload() {
             // Clear all existing data before making the request
             this.resetApp();
             
+            const emailInput = document.getElementById('register-email');
+            const email = emailInput ? emailInput.value.trim() : '';
+
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, pin })
+                body: JSON.stringify({ username, pin, email })
             });
             
             const data = await response.json();
@@ -831,6 +834,8 @@ async backgroundPreload() {
                 // Set new user data
                 this.userId = data.userId;
                 this.username = username;
+                this.email = data.email || (email || null);
+                this.updateGmailUI();
                 document.getElementById('username-display').textContent = `Hi ${username}`;
                 
                 // Show app screen first
@@ -3015,6 +3020,9 @@ if (response.ok) {
             });
             const data = await res.json();
             if (data.success) {
+                if (data.username) {
+                    this._resolvedResetUsername = data.username;
+                }
                 alert(data.message || 'OTP sent successfully!');
                 document.getElementById('forgot-form').classList.add('hidden');
                 document.getElementById('verify-reset-form').classList.remove('hidden');
@@ -3035,7 +3043,8 @@ if (response.ok) {
 
     async handleVerifyResetOtp(e) {
         if (e && e.preventDefault) e.preventDefault();
-        const username = document.getElementById('forgot-username').value.trim();
+        const rawIdentifier = document.getElementById('forgot-username').value.trim();
+        const username = this._resolvedResetUsername || rawIdentifier;
         const otp = document.getElementById('reset-otp-input').value.trim();
         const newPin = document.getElementById('reset-new-pin').value;
 
