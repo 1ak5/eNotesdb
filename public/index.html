@@ -29,14 +29,14 @@
             <form id="register-form" class="auth-form hidden">
                 <input type="text" id="register-username" placeholder="Username" required>
                 <input type="password" id="register-pin" placeholder="PIN" required>
-                <input type="email" id="register-email" placeholder="Connect Gmail (optional, for reset)">
+                <input type="email" id="register-email" placeholder="Connect Gmail (optional, for recovery)">
                 <button type="submit">Register</button>
             </form>
 
             <!-- Forgot Password Step 1: Send OTP -->
             <form id="forgot-form" class="auth-form hidden">
-                <p class="auth-subtext">Enter your username to receive a password reset OTP on your connected Gmail.</p>
-                <input type="text" id="forgot-username" placeholder="Username" required>
+                <p class="auth-subtext">Enter your username or connected Gmail to receive a password reset OTP.</p>
+                <input type="text" id="forgot-username" placeholder="Username or Gmail" required>
                 <div class="auth-buttons-row">
                     <button type="button" id="back-to-login-btn" class="secondary-btn">Back</button>
                     <button type="submit" id="send-otp-btn">Send OTP</button>

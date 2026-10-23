@@ -352,14 +352,21 @@ app.post('/api/connect-email', requireAuth, async (req, res) => {
 // Forgot Password - Step 1: Send OTP to connected Gmail
 app.post('/api/forgot-password/send-otp', async (req, res) => {
   try {
-    const { username } = req.body;
-    if (!username || !username.trim()) {
-      return res.status(400).json({ error: 'Username is required' });
+    const { username, accountIdentifier } = req.body;
+    const identifier = (username || accountIdentifier || '').trim();
+    if (!identifier) {
+      return res.status(400).json({ error: 'Username or Gmail is required' });
     }
 
-    const user = await User.findOne({ username: username.trim() });
+    // Find user by either username OR email (case-insensitive)
+    const user = await User.findOne({
+      $or: [
+        { username: identifier },
+        { email: identifier.toLowerCase() }
+      ]
+    });
     if (!user) {
-      return res.status(404).json({ error: 'No account found with this username' });
+      return res.status(404).json({ error: 'No account found with this username or Gmail' });
     }
 
     if (!user.email) {
@@ -389,6 +396,7 @@ app.post('/api/forgot-password/send-otp', async (req, res) => {
     res.json({ 
       success: true, 
       message: `OTP sent successfully to ${maskedEmail}`,
+      username: user.username,
       maskedEmail 
     });
   } catch (error) {
@@ -400,12 +408,18 @@ app.post('/api/forgot-password/send-otp', async (req, res) => {
 // Forgot Password - Step 2: Verify OTP and Reset Password
 app.post('/api/forgot-password/verify-reset', async (req, res) => {
   try {
-    const { username, otp, newPin } = req.body;
-    if (!username || !otp || !newPin) {
-      return res.status(400).json({ error: 'Username, OTP, and new password are required' });
+    const { username, accountIdentifier, otp, newPin } = req.body;
+    const identifier = (username || accountIdentifier || '').trim();
+    if (!identifier || !otp || !newPin) {
+      return res.status(400).json({ error: 'Username/Gmail, OTP, and new password are required' });
     }
 
-    const user = await User.findOne({ username: username.trim() });
+    const user = await User.findOne({
+      $or: [
+        { username: identifier },
+        { email: identifier.toLowerCase() }
+      ]
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (!user.resetOtp || !user.resetOtp.code || !user.resetOtp.expiresAt) {
