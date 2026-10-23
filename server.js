@@ -27,48 +27,72 @@ const MongoStore = require('connect-mongo');
 const path_mod = require('path');
 const nodemailer = require('nodemailer');
 
-// ─── EMAIL TRANSPORTER ──────────────────────────────────
-// Robust Direct Gmail configuration for Cloud (Forces IPv4, explicit STARTTLS, bypasses IPv6 cloud drops)
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // STARTTLS
-    requireTLS: true,
-    family: 4, // CRITICAL FOR RENDER: Force IPv4 (Render fails on IPv6 SMTP routes)
-    auth: {
-      user: process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com',
-      pass: process.env.SMTP_PASS || 'vjhiynnrulydwnqk'
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000
-  });
-};
-
-let mailTransporter = createTransporter();
+// ─── EMAIL SENDER (GOOGLE APPS SCRIPT OVER HTTPS) ──────
+// Uses direct HTTPS Google API (never blocked by Render/Cloud firewalls)
+const GOOGLE_MAIL_WEBHOOK = process.env.GOOGLE_MAIL_WEBHOOK || 'https://script.google.com/macros/s/AKfycbw_A-1DzlhA_b5wpDJY8lg29MJYETfjMNLK8R5GJfA4xkjCzr72JEoxsWomHTkvJpMftg/exec';
 
 const sendResetEmail = async (toEmail, username, otp) => {
-  const mailOptions = {
-    from: `"eNotes App" <${process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com'}>`,
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #EFECE4;">
+      <h2 style="color: #1A1A1A; margin-top: 0;">eNotes Account Recovery</h2>
+      <p style="color: #555555; font-size: 15px;">Hello <b>${username}</b>,</p>
+      <p style="color: #555555; font-size: 15px;">You requested to reset your password. Use the OTP code below to reset your password. This OTP is valid for <b>10 minutes</b>.</p>
+      <div style="background: #F8F7F4; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; border: 1px dashed #D0CCC0;">
+        <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1A1A1A;">${otp}</span>
+      </div>
+      <p style="color: #888888; font-size: 13px; margin-bottom: 0;">If you did not request this, you can safely ignore this email. Never share this code with anyone.</p>
+    </div>
+  `;
+
+  // Use native https request or fetch
+  const payload = JSON.stringify({
     to: toEmail,
     subject: 'eNotes - Password Reset OTP',
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #EFECE4;">
-        <h2 style="color: #1A1A1A; margin-top: 0;">eNotes Account Recovery</h2>
-        <p style="color: #555555; font-size: 15px;">Hello <b>${username}</b>,</p>
-        <p style="color: #555555; font-size: 15px;">You requested to reset your password. Use the OTP code below to reset your password. This OTP is valid for <b>10 minutes</b>.</p>
-        <div style="background: #F8F7F4; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; border: 1px dashed #D0CCC0;">
-          <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1A1A1A;">${otp}</span>
-        </div>
-        <p style="color: #888888; font-size: 13px; margin-bottom: 0;">If you did not request this, you can safely ignore this email. Never share this code with anyone.</p>
-      </div>
-    `
-  };
-  return await mailTransporter.sendMail(mailOptions);
+    html: html
+  });
+
+  const parsedUrl = new URL(GOOGLE_MAIL_WEBHOOK);
+  const https = require('https');
+
+  return new Promise((resolve, reject) => {
+    // Helper to follow 302 redirects automatically
+    const makeReq = (targetUrl) => {
+      const u = new URL(targetUrl);
+      const req = https.request(u, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        },
+        timeout: 10000
+      }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          // Google redirects POST to GET or follow location
+          const redirectUrl = res.headers.location;
+          https.get(redirectUrl, { timeout: 10000 }, (rRes) => {
+            let data = '';
+            rRes.on('data', chunk => data += chunk);
+            rRes.on('end', () => resolve(data));
+          }).on('error', reject);
+          return;
+        }
+
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => resolve(body));
+      });
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timed out'));
+      });
+      req.write(payload);
+      req.end();
+    };
+
+    makeReq(GOOGLE_MAIL_WEBHOOK);
+  });
 };
 
 // ─── MongoDB Connection ─────────────────────────────────
