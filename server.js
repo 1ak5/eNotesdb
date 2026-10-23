@@ -29,11 +29,19 @@ const nodemailer = require('nodemailer');
 
 // ─── EMAIL TRANSPORTER ──────────────────────────────────
 const mailTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // Use direct SSL/TLS for cloud stability
   auth: {
     user: process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com',
     pass: process.env.SMTP_PASS || 'vjhiynnrulydwnqk'
-  }
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 const sendResetEmail = async (toEmail, username, otp) => {
