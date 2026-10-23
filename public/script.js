@@ -1036,7 +1036,12 @@ async backgroundPreload() {
         container.innerHTML = '';
         
         if (notebooks.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #89999A; padding: 2rem;">No notebooks yet. Create your first notebook!</div>';
+            container.innerHTML = `
+            <div class="empty-state-box">
+                <div class="empty-icon"><i class="material-icons">folder_open</i></div>
+                <h3>No notebooks yet</h3>
+                <p>Create your first notebook using the bar above</p>
+            </div>`;
             return;
         }
         
@@ -1667,7 +1672,12 @@ async backgroundPreload() {
         container.innerHTML = '';
         
         if (notes.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #89999A; padding: 2rem;">No notes yet. Add your first note!</div>';
+            container.innerHTML = `
+            <div class="empty-state-box">
+                <div class="empty-icon"><i class="material-icons">edit_note</i></div>
+                <h3>No notes yet</h3>
+                <p>Add your first note to this notebook</p>
+            </div>`;
             return;
         }
         
@@ -1790,7 +1800,12 @@ async backgroundPreload() {
         container.innerHTML = '';
         
         if (items.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #89999A; padding: 2rem;">No items yet. Add your first item!</div>';
+            container.innerHTML = `
+            <div class="empty-state-box">
+                <div class="empty-icon"><i class="material-icons">checklist</i></div>
+                <h3>No items yet</h3>
+                <p>Add a task item using the bar above</p>
+            </div>`;
             return;
         }
         
@@ -2132,7 +2147,12 @@ if (response.ok) {
         container.innerHTML = '';
         
         if (notes.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #89999A; padding: 2rem;">No favorite notes yet. Star some notes to see them here!</div>';
+            container.innerHTML = `
+            <div class="empty-state-box">
+                <div class="empty-icon" style="background: #FFF8E1; color: #FFA000;"><i class="material-icons" style="color: #FFA000;">star</i></div>
+                <h3>No favorite notes</h3>
+                <p>Star important notes to see them quickly here</p>
+            </div>`;
             return;
         }
         

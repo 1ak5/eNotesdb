@@ -1418,3 +1418,512 @@ html, body {
   20%, 60% { transform: translateX(-8px); }
   40%, 80% { transform: translateX(8px); }
 }
+
+
+/* ==========================================================================
+   HIDDEN SCROLLBARS (MATCHING FLUTTER APP FLUID SCROLL)
+   ========================================================================== */
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ==========================================================================
+   CONTEXT MENUS (NOTEBOOK, NOTE, IMAGE POPUPS)
+   ========================================================================== */
+.notebook-menu, .context-menu, .dropdown-menu {
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+  min-width: 170px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14) !important;
+  border: 1px solid var(--input-border) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  z-index: 10000 !important;
+  animation: menuPop 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes menuPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.notebook-menu button, .context-menu button, .dropdown-menu button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: background 0.12s ease !important;
+}
+
+.notebook-menu button:hover, .context-menu button:hover, .dropdown-menu button:hover {
+  background: var(--input-bg) !important;
+}
+
+.notebook-menu button i, .context-menu button i, .dropdown-menu button i {
+  font-size: 19px !important;
+  color: var(--text-secondary) !important;
+}
+
+.notebook-menu button[data-action="delete"], 
+.context-menu button.delete-btn,
+.dropdown-menu button.delete-action {
+  color: var(--error) !important;
+}
+
+.notebook-menu button[data-action="delete"] i,
+.context-menu button.delete-btn i,
+.dropdown-menu button.delete-action i {
+  color: var(--error) !important;
+}
+
+/* ==========================================================================
+   FAVORITES SECTION (1:1 FLUTTER LOOK)
+   ========================================================================== */
+.favorites-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  border: 1px solid rgba(214, 207, 193, 0.45);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 8px;
+}
+
+.star-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #FFF8E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.star-icon i {
+  color: #FFA000;
+  font-size: 26px;
+}
+
+.favorites-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+#favorites-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.empty-state-box, .images-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px !important;
+}
+
+.empty-state-box .empty-icon, .images-empty i {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: rgba(26, 26, 26, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--text-secondary) !important;
+  font-size: 34px !important;
+}
+
+.empty-state-box h3, .images-empty h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.empty-state-box p, .images-empty p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   IMAGES TOOLBAR, FOLDERS & SELECTION BAR
+   ========================================================================== */
+.folder-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  border: 1px solid rgba(214, 207, 193, 0.45);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 12px;
+}
+
+.folder-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--primary);
+}
+
+.folder-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.new-folder-row {
+  margin-bottom: 12px;
+}
+
+.images-select-bar {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #FFFFFF;
+  border-radius: 30px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--elevated-shadow);
+  z-index: 500;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.select-bar-btn {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.select-bar-btn i {
+  color: #FFFFFF;
+  font-size: 18px;
+}
+
+.select-bar-btn.select-delete {
+  color: #FF6B6B;
+}
+
+.select-bar-btn.select-delete i {
+  color: #FF6B6B;
+}
+
+.upload-progress {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  border: 1px solid var(--input-border);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-bar {
+  height: 6px;
+  background: var(--primary);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.2s ease;
+}
+
+#upload-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ==========================================================================
+   IMAGE FULLSCREEN VIEWER MODAL
+   ========================================================================== */
+#image-modal {
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+}
+
+.image-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 94vw;
+  max-height: 90vh;
+}
+
+.image-modal-content img {
+  max-width: 90vw;
+  max-height: 76vh;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.image-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.image-modal-actions button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.image-modal-actions button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.image-modal-actions button i {
+  color: #FFFFFF;
+  font-size: 20px;
+}
+
+/* ==========================================================================
+   CONFIRM DIALOGS (DELETE / RENAME MODAL)
+   ========================================================================== */
+.confirm-modal, .rename-modal {
+  background: #FFFFFF;
+  border-radius: 24px;
+  padding: 26px 22px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  border: 1px solid var(--input-border);
+}
+
+.confirm-modal h3, .rename-modal h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.confirm-modal p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 22px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-actions button {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.confirm-cancel {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.confirm-delete {
+  background: var(--error);
+  color: #FFFFFF;
+}
+
+
+/* ==========================================================================
+   RENAME & DELETE OVERLAY DIALOGS (1:1 FLUTTER ALERT DIALOGS)
+   ========================================================================== */
+.rename-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(4px);
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.rename-modal, .delete-confirm-modal {
+  background: #FFFFFF !important;
+  border-radius: 24px !important;
+  padding: 26px 24px !important;
+  width: 100% !important;
+  max-width: 380px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18) !important;
+  border: 1px solid var(--input-border) !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.rename-modal h3, .delete-confirm-modal h3 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  margin-bottom: 8px !important;
+}
+
+.delete-confirm-modal i {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--error-light);
+  color: var(--error) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px !important;
+  margin-bottom: 14px;
+}
+
+.delete-confirm-modal p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.rename-modal input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #F8F7F4;
+  border: 1.5px solid var(--input-border);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  margin: 12px 0 20px 0;
+}
+
+.rename-modal input:focus {
+  border-color: var(--primary);
+  background: #FFFFFF;
+}
+
+.rename-modal-actions, .delete-confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.rename-cancel-btn, .delete-cancel-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rename-cancel-btn:hover, .delete-cancel-btn:hover {
+  background: #DDD8CC;
+}
+
+.rename-save-btn {
+  flex: 1.4;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--primary);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rename-save-btn:hover {
+  background: var(--primary-light);
+}
+
+.delete-confirm-btn {
+  flex: 1.4;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--error);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.delete-confirm-btn:hover {
+  background: #B71C1C;
+}
