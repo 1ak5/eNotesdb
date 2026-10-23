@@ -733,24 +733,27 @@ html, body {
   background: var(--glass-surface);
 }
 
+/* ─── Folders Grid & Cards (1:1 Flutter Image Folders) ─── */
 .folders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .folder-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 18px 16px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  text-align: center;
   border: 1px solid rgba(214, 207, 193, 0.45);
   box-shadow: var(--card-shadow);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease;
 }
 
 .folder-card:hover {
@@ -758,41 +761,97 @@ html, body {
   box-shadow: var(--elevated-shadow);
 }
 
-.folder-icon i {
-  color: var(--primary);
-  font-size: 26px;
+.folder-card-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: rgba(26, 26, 26, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  position: relative;
 }
 
-.folder-name {
-  flex: 1;
+.folder-card-preview i {
+  color: var(--primary);
+  font-size: 36px;
+}
+
+.folder-card-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.folder-card-menu {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--input-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.folder-card-menu:hover {
+  background: var(--input-bg);
+  color: var(--primary);
+}
+
+.folder-card-menu i {
+  font-size: 18px;
+}
+
+.folder-card-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* ─── Images Grid & Cards (1:1 Flutter Images Grid) ────── */
 .images-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  padding-bottom: 30px;
 }
 
 .image-card {
   position: relative;
   aspect-ratio: 1;
-  border-radius: var(--radius-md);
+  border-radius: 18px;
   overflow: hidden;
-  background: #E6E2D6;
+  background: #E8E5DC;
   border: 1px solid rgba(214, 207, 193, 0.45);
   box-shadow: var(--card-shadow);
   cursor: pointer;
-  transition: transform 0.15s;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease;
 }
 
 .image-card:hover {
-  transform: scale(1.02);
+  transform: translateY(-2px);
+  box-shadow: var(--elevated-shadow);
+}
+
+.image-card.selected {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 3px var(--primary), var(--elevated-shadow);
 }
 
 .image-card img {
@@ -802,27 +861,124 @@ html, body {
   display: block;
 }
 
-.image-badge {
+.image-select-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  cursor: pointer;
+  color: #FFFFFF;
+}
+
+.image-select-check.visible {
+  display: flex;
+}
+
+.image-select-check i {
+  font-size: 18px;
+  color: #FFFFFF;
+}
+
+.image-card.selected .image-select-check {
+  background: var(--primary);
+}
+
+.image-pin-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 149, 0, 0.92);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  z-index: 3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.image-pin-badge i {
+  font-size: 16px;
+  color: #FFFFFF;
+}
+
+.image-lock-badge {
+  position: absolute;
+  top: 8px;
+  right: 42px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  z-index: 3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.image-lock-badge i {
+  font-size: 15px;
+  color: #FFFFFF;
+}
+
+.image-delete-btn {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  border-radius: 6px;
-  padding: 2px 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.image-delete-btn:hover {
+  background: var(--error);
+  transform: scale(1.1);
+}
+
+.image-delete-btn i {
+  font-size: 16px;
+  color: #FFFFFF;
+}
+
+.image-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 10px 8px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.25) 60%, transparent 100%);
+  color: #FFFFFF;
   font-size: 11px;
-}
-
-.images-empty {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text-hint);
-}
-
-.images-empty i {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* ─── Floating Pill Capsule Bottom Navigation Bar ──────── */
@@ -1423,31 +1579,31 @@ html, body {
 /* ==========================================================================
    HIDDEN SCROLLBARS (MATCHING FLUTTER APP FLUID SCROLL)
    ========================================================================== */
-* {
+html, body, .main-content, .notes-list, .images-grid, .folders-grid, .modal, .modal-content, * {
   scrollbar-width: none !important; /* Firefox */
   -ms-overflow-style: none !important; /* IE/Edge */
 }
 
-*::-webkit-scrollbar {
+::-webkit-scrollbar, *::-webkit-scrollbar {
   display: none !important; /* Chrome, Safari, Opera */
   width: 0 !important;
   height: 0 !important;
 }
 
 /* ==========================================================================
-   CONTEXT MENUS (NOTEBOOK, NOTE, IMAGE POPUPS)
+   CONTEXT MENUS (NOTEBOOK & FOLDER CONTEXT MENUS - 1:1 FLUTTER POPUP MENU)
    ========================================================================== */
-.notebook-menu, .context-menu, .dropdown-menu {
+.folder-context-menu, .notebook-menu, .context-menu, .dropdown-menu {
   background: #FFFFFF !important;
   border-radius: 16px !important;
-  padding: 8px !important;
-  min-width: 170px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14) !important;
+  padding: 6px !important;
+  min-width: 160px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
   border: 1px solid var(--input-border) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 4px !important;
-  z-index: 10000 !important;
+  gap: 2px !important;
+  z-index: 99999 !important;
   animation: menuPop 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -1456,7 +1612,10 @@ html, body {
   to { opacity: 1; transform: scale(1); }
 }
 
-.notebook-menu button, .context-menu button, .dropdown-menu button {
+.folder-context-menu-item,
+.notebook-menu button, 
+.context-menu button, 
+.dropdown-menu button {
   width: 100% !important;
   display: flex !important;
   align-items: center !important;
@@ -1473,25 +1632,43 @@ html, body {
   transition: background 0.12s ease !important;
 }
 
-.notebook-menu button:hover, .context-menu button:hover, .dropdown-menu button:hover {
+.folder-context-menu-item:hover,
+.notebook-menu button:hover, 
+.context-menu button:hover, 
+.dropdown-menu button:hover {
   background: var(--input-bg) !important;
 }
 
-.notebook-menu button i, .context-menu button i, .dropdown-menu button i {
-  font-size: 19px !important;
+.folder-context-menu-item i,
+.notebook-menu button i, 
+.context-menu button i, 
+.dropdown-menu button i {
+  font-size: 20px !important;
   color: var(--text-secondary) !important;
 }
 
+.folder-context-menu-divider {
+  height: 1px !important;
+  background: var(--input-border) !important;
+  margin: 4px 6px !important;
+}
+
+.folder-context-menu-item.danger,
 .notebook-menu button[data-action="delete"], 
 .context-menu button.delete-btn,
 .dropdown-menu button.delete-action {
   color: var(--error) !important;
 }
 
+.folder-context-menu-item.danger i,
 .notebook-menu button[data-action="delete"] i,
 .context-menu button.delete-btn i,
 .dropdown-menu button.delete-action i {
   color: var(--error) !important;
+}
+
+.folder-context-menu-item.danger:hover {
+  background: var(--error-light) !important;
 }
 
 /* ==========================================================================
@@ -1500,40 +1677,46 @@ html, body {
 .favorites-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  padding: 20px 22px;
-  border: 1px solid rgba(214, 207, 193, 0.45);
-  box-shadow: var(--card-shadow);
+  justify-content: space-between;
+  padding: 8px 4px 14px 4px;
   margin-bottom: 8px;
 }
 
-.star-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+.favorites-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.favorites-header .star-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   background: #FFF8E1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.star-icon i {
+.favorites-header .star-icon i {
   color: #FFA000;
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .favorites-header h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin: 0;
 }
 
 #favorites-count {
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
+  background: rgba(26, 26, 26, 0.05);
+  padding: 4px 12px;
+  border-radius: 20px;
 }
 
 .empty-state-box, .images-empty {
@@ -1570,6 +1753,146 @@ html, body {
   color: var(--text-secondary);
   max-width: 280px;
   line-height: 1.45;
+}
+
+/* ==========================================================================
+   GUIDE TOUR MODAL (1:1 FLUTTER APP GUIDE TOUR SCREEN)
+   ========================================================================== */
+#guide-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  padding: 20px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+#guide-modal.hidden {
+  display: none !important;
+}
+
+.guide-content {
+  background: #FFFFFF;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 440px;
+  padding: 32px 28px 28px 28px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--input-border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.guide-skip {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.guide-skip:hover {
+  background: var(--input-bg);
+}
+
+#guide-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.guide-icon-wrap {
+  width: 108px;
+  height: 108px;
+  border-radius: 32px;
+  background: rgba(26, 26, 26, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.guide-icon-wrap i {
+  font-size: 52px;
+  color: var(--primary);
+}
+
+#guide-body h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.3px;
+}
+
+#guide-body p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.guide-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 0 24px 0;
+}
+
+.guide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #E5E0D5;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.guide-dot.active {
+  width: 26px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+.guide-next-btn {
+  width: 100%;
+  height: 52px;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(26, 26, 26, 0.2);
+  transition: background 0.15s, transform 0.1s;
+}
+
+.guide-next-btn:hover {
+  background: var(--primary-light);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================

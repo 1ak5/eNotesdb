@@ -610,6 +610,10 @@ async backgroundPreload() {
         if (imagePinBtn) {
             imagePinBtn.addEventListener('click', () => {
                 const modal = document.getElementById('image-modal');
+                const wasPinned = modal.dataset.isPinned === 'true';
+                const newPinned = !wasPinned;
+                modal.dataset.isPinned = String(newPinned);
+                imagePinBtn.style.color = newPinned ? '#FF9500' : '#FFFFFF';
                 this.toggleImagePin(modal.dataset.imageId);
             });
         }
@@ -1142,13 +1146,20 @@ async backgroundPreload() {
             </button>
         `;
 
-        const targetBtn = event.currentTarget;
-        const rect = targetBtn.getBoundingClientRect();
-        
-        menu.style.position = 'fixed';
-        menu.style.top = (rect.bottom + window.scrollY) + 'px';
-        menu.style.left = (rect.right - 140) + 'px';
-        menu.style.zIndex = '9999';
+        const targetBtn = event ? (event.currentTarget || (event.target ? event.target.closest('button') : null)) : null;
+        if (targetBtn) {
+            const rect = targetBtn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = (rect.bottom + 6) + 'px';
+            menu.style.right = (window.innerWidth - rect.right) + 'px';
+            menu.style.left = 'auto';
+        } else {
+            menu.style.position = 'fixed';
+            menu.style.top = '50%';
+            menu.style.left = '50%';
+            menu.style.transform = 'translate(-50%, -50%)';
+        }
+        menu.style.zIndex = '99999';
         
         document.body.appendChild(menu);
 
@@ -1171,7 +1182,7 @@ async backgroundPreload() {
         });
 
         const closeMenu = (e) => {
-            if (!menu.contains(e.target)) {
+            if (!menu.contains(e.target) && (!targetBtn || !targetBtn.contains(e.target))) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }
@@ -2141,7 +2152,10 @@ if (response.ok) {
 
     renderFavorites(notes) {
         // Update count
-        document.getElementById('favorites-count').textContent = `${notes.length} starred notes`;
+        const countEl = document.getElementById('favorites-count');
+        if (countEl) {
+            countEl.textContent = `${notes.length} starred note${notes.length !== 1 ? 's' : ''}`;
+        }
         
         const container = document.getElementById('favorites-list');
         container.innerHTML = '';
@@ -2163,7 +2177,8 @@ if (response.ok) {
             
             let sourceInfo = '';
             if (note.notebookId) {
-                sourceInfo = `<div class="note-source"><i class="material-icons">star</i> From ${note.notebookId.name}</div>`;
+                const nbName = (typeof note.notebookId === 'object' && note.notebookId !== null) ? note.notebookId.name : note.notebookId;
+                sourceInfo = `<div class="note-source"><i class="material-icons">folder</i> From ${this.escapeHtml(nbName || 'Notebook')}</div>`;
             }
             
             const date = new Date(note.updatedAt);
@@ -2409,10 +2424,10 @@ if (response.ok) {
           <div class="image-select-check ${this.isSelectMode ? 'visible' : ''}" onclick="event.stopPropagation(); app.toggleImageSelect('${img._id}')">
             <i class="material-icons">${this.selectedImages.has(img._id) ? 'check_circle' : 'radio_button_unchecked'}</i>
           </div>
-          <img src="${img.cloudUrl}" alt="${img.fileName}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'/>'">
-          ${img.isPinned ? '<div class="image-pin-badge"><i class="material-icons">push_pin</i></div>' : ''}
-          ${img.isLocked ? '<div class="image-lock-badge"><i class="material-icons">lock</i></div>' : ''}
-          <div class="image-name">${img.fileName}</div>
+          <img src="${img.cloudUrl}" alt="${this.escapeHtml(img.fileName || '')}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'/>'">
+          ${img.isPinned ? '<div class="image-pin-badge" title="Pinned"><i class="material-icons">push_pin</i></div>' : ''}
+          ${img.isLocked ? '<div class="image-lock-badge" title="Locked"><i class="material-icons">lock</i></div>' : ''}
+          <div class="image-name">${this.escapeHtml(img.fileName || '')}</div>
           <button class="image-delete-btn" onclick="event.stopPropagation(); app.deleteImage('${img._id}')" title="Delete">
             <i class="material-icons">delete</i>
           </button>
@@ -2452,7 +2467,7 @@ if (response.ok) {
               <div class="folder-card-preview">
                 <i class="material-icons">folder</i>
                 <div class="folder-card-count">${count} image${count !== 1 ? 's' : ''}</div>
-                <button class="folder-card-menu" onclick="event.stopPropagation(); app.showFolderMenu('${f._id}', '${f.name.replace(/'/g, "\\'")}')" title="Options">
+                <button class="folder-card-menu" onclick="event.stopPropagation(); app.showFolderMenu(event, '${f._id}', '${f.name.replace(/'/g, "\\'")}')" title="Options">
                   <i class="material-icons">more_vert</i>
                 </button>
               </div>
@@ -2520,7 +2535,7 @@ if (response.ok) {
     } catch (e) { console.error('Create folder error:', e); }
   }
 
-  showFolderMenu(folderId, folderName) {
+  showFolderMenu(event, folderId, folderName) {
     // Close any existing menu
     document.querySelectorAll('.folder-context-menu').forEach(m => m.remove());
 
@@ -2536,22 +2551,21 @@ if (response.ok) {
       </button>
     `;
 
-    // Find the folder card to position relative to it
-    const folderCards = document.querySelectorAll('.folder-card');
-    let folderCard = null;
-    folderCards.forEach(card => {
-      const menuBtn = card.querySelector('.folder-card-menu');
-      if (menuBtn && menuBtn.getAttribute('onclick') && menuBtn.getAttribute('onclick').includes(folderId)) {
-        folderCard = card;
-      }
-    });
-
-    if (folderCard) {
-      folderCard.style.position = 'relative';
-      folderCard.appendChild(menu);
+    const targetBtn = event ? (event.currentTarget || (event.target ? event.target.closest('button') : null)) : null;
+    if (targetBtn) {
+      const rect = targetBtn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (rect.bottom + 6) + 'px';
+      menu.style.right = (window.innerWidth - rect.right) + 'px';
+      menu.style.left = 'auto';
     } else {
-      document.body.appendChild(menu);
+      menu.style.position = 'fixed';
+      menu.style.top = '50%';
+      menu.style.left = '50%';
+      menu.style.transform = 'translate(-50%, -50%)';
     }
+    menu.style.zIndex = '99999';
+    document.body.appendChild(menu);
 
     // Handle actions
     menu.querySelector('[data-action="rename"]').addEventListener('click', (e) => {
@@ -2568,11 +2582,13 @@ if (response.ok) {
 
     // Close on outside click
     const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
+      if (!menu.contains(e.target) && (!targetBtn || !targetBtn.contains(e.target))) {
         menu.remove();
         document.removeEventListener('click', closeMenu);
       }
     };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  }
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
@@ -2799,8 +2815,13 @@ if (response.ok) {
     // Update button states
     const pinBtn = document.getElementById('image-pin-btn');
     const lockBtn = document.getElementById('image-lock-btn');
-    pinBtn.style.color = isPinned === 'true' ? '#FF9500' : '#89999A';
-    lockBtn.textContent = isLocked === 'true' ? 'lock_open' : 'lock';
+    const pinned = isPinned === 'true' || isPinned === true;
+    const locked = isLocked === 'true' || isLocked === true;
+    if (pinBtn) pinBtn.style.color = pinned ? '#FF9500' : '#FFFFFF';
+    if (lockBtn) {
+      lockBtn.innerHTML = `<i class="material-icons">${locked ? 'lock_open' : 'lock'}</i>`;
+      lockBtn.title = locked ? 'Unlock image' : 'Lock image';
+    }
   }
 
   closeImageModal() {
