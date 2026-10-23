@@ -767,7 +767,7 @@ async backgroundPreload() {
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, pin, email })
+                body: JSON.stringify({ username, pin })
             });
             
             const data = await response.json();
