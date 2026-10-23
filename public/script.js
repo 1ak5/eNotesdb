@@ -234,7 +234,7 @@ class NotesApp {
             gap: 8px;
             pointer-events: none;
         `;
-        notification.innerHTML = `<i class="material-icons" style="font-size: 16px; color: #5B6ABF;">sync</i><span>${message}</span>`;
+        notification.innerHTML = `<i class="material-icons" style="font-size: 16px; color: #1A1A1A;">sync</i><span>${message}</span>`;
         
         document.body.appendChild(notification);
         
@@ -1047,7 +1047,7 @@ async backgroundPreload() {
             item.dataset.id = notebook._id;
             
             const isLocked = notebook.isLocked;
-            const iconHtml = isLocked ? '<i class="material-icons" style="color: #5B6ABF;">lock</i>' : '';
+            const iconHtml = isLocked ? '<i class="material-icons" style="color: #1A1A1A;">lock</i>' : '';
             const countHtml = isLocked ? '' : `<p>${notebook.noteCount} notes</p>`;
             
             item.innerHTML = `

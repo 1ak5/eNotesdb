@@ -11,48 +11,57 @@
     <!-- Login/Register Screen -->
     <div id="auth-screen" class="screen">
         <div class="auth-container">
-            <h1>eNotes</h1>
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-tab="login">Login</button>
-                <button class="auth-tab" data-tab="register">Register</button>
+            <div class="auth-brand">
+                <div class="auth-brand-icon">
+                    <i class="material-icons">edit_note</i>
+                </div>
+                <h1>eNotes</h1>
+                <p class="auth-subtext-header">Offline-first cloud notebook</p>
             </div>
-            
-            <form id="login-form" class="auth-form">
-                <input type="text" id="login-username" placeholder="Username" required>
-                <input type="password" id="login-pin" placeholder="PIN" required>
-                <div class="auth-forgot-link-wrap">
-                    <button type="button" id="forgot-password-link" class="text-link-btn">Forgot Password?</button>
-                </div>
-                <button type="submit">Login</button>
-            </form>
-            
-            <form id="register-form" class="auth-form hidden">
-                <input type="text" id="register-username" placeholder="Username" required>
-                <input type="password" id="register-pin" placeholder="PIN" required>
-                <input type="email" id="register-email" placeholder="Connect Gmail (optional, for recovery)">
-                <button type="submit">Register</button>
-            </form>
 
-            <!-- Forgot Password Step 1: Send OTP -->
-            <form id="forgot-form" class="auth-form hidden">
-                <p class="auth-subtext">Enter your username or connected Gmail to receive a password reset OTP.</p>
-                <input type="text" id="forgot-username" placeholder="Username or Gmail" required>
-                <div class="auth-buttons-row">
-                    <button type="button" id="back-to-login-btn" class="secondary-btn">Back</button>
-                    <button type="submit" id="send-otp-btn">Send OTP</button>
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Login</button>
+                    <button class="auth-tab" data-tab="register">Register</button>
                 </div>
-            </form>
+                
+                <form id="login-form" class="auth-form">
+                    <input type="text" id="login-username" placeholder="Username" required>
+                    <input type="password" id="login-pin" placeholder="PIN" required>
+                    <div class="auth-forgot-link-wrap">
+                        <button type="button" id="forgot-password-link" class="text-link-btn">Forgot Password?</button>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                
+                <form id="register-form" class="auth-form hidden">
+                    <input type="text" id="register-username" placeholder="Username" required>
+                    <input type="password" id="register-pin" placeholder="PIN" required>
+                    <input type="email" id="register-email" placeholder="Connect Gmail (optional, for recovery)">
+                    <button type="submit">Register</button>
+                </form>
 
-            <!-- Forgot Password Step 2: Verify OTP & Reset -->
-            <form id="verify-reset-form" class="auth-form hidden">
-                <p id="otp-sent-info" class="auth-subtext">OTP sent to your email.</p>
-                <input type="text" id="reset-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" required>
-                <input type="password" id="reset-new-pin" placeholder="Enter New PIN" required>
-                <div class="auth-buttons-row">
-                    <button type="button" id="resend-otp-btn" class="secondary-btn">Resend</button>
-                    <button type="submit" id="submit-reset-btn">Reset Password</button>
-                </div>
-            </form>
+                <!-- Forgot Password Step 1: Send OTP -->
+                <form id="forgot-form" class="auth-form hidden">
+                    <p class="auth-subtext">Enter your username or connected Gmail to receive a password reset OTP.</p>
+                    <input type="text" id="forgot-username" placeholder="Username or Gmail" required>
+                    <div class="auth-buttons-row">
+                        <button type="button" id="back-to-login-btn" class="secondary-btn">Back</button>
+                        <button type="submit" id="send-otp-btn">Send OTP</button>
+                    </div>
+                </form>
+
+                <!-- Forgot Password Step 2: Verify OTP & Reset -->
+                <form id="verify-reset-form" class="auth-form hidden">
+                    <p id="otp-sent-info" class="auth-subtext">OTP sent to your email.</p>
+                    <input type="text" id="reset-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" required>
+                    <input type="password" id="reset-new-pin" placeholder="Enter New PIN" required>
+                    <div class="auth-buttons-row">
+                        <button type="button" id="resend-otp-btn" class="secondary-btn">Resend</button>
+                        <button type="submit" id="submit-reset-btn">Reset Password</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
