@@ -28,21 +28,28 @@ const path_mod = require('path');
 const nodemailer = require('nodemailer');
 
 // ─── EMAIL TRANSPORTER ──────────────────────────────────
-const mailTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // Use direct SSL/TLS for cloud stability
-  auth: {
-    user: process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com',
-    pass: process.env.SMTP_PASS || 'vjhiynnrulydwnqk'
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000
-});
+// Robust Direct Gmail configuration for Cloud (Forces IPv4, explicit STARTTLS, bypasses IPv6 cloud drops)
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS
+    requireTLS: true,
+    family: 4, // CRITICAL FOR RENDER: Force IPv4 (Render fails on IPv6 SMTP routes)
+    auth: {
+      user: process.env.SMTP_EMAIL || 'adityasuryawanshi470@gmail.com',
+      pass: process.env.SMTP_PASS || 'vjhiynnrulydwnqk'
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
+  });
+};
+
+let mailTransporter = createTransporter();
 
 const sendResetEmail = async (toEmail, username, otp) => {
   const mailOptions = {
