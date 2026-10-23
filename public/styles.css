@@ -704,6 +704,12 @@ html, body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
+.images-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .add-image-btn, .new-folder-btn {
   padding: 9px 16px;
   background: var(--primary);
@@ -736,66 +742,70 @@ html, body {
 /* ─── Folders Grid & Cards (1:1 Flutter Image Folders) ─── */
 .folders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 14px;
   margin-bottom: 24px;
 }
 
 .folder-card {
-  background: #FFFFFF;
-  border-radius: 20px;
-  padding: 18px 16px;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  border: 1px solid rgba(214, 207, 193, 0.45);
-  box-shadow: var(--card-shadow);
   cursor: pointer;
   position: relative;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .folder-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--elevated-shadow);
 }
 
 .folder-card-preview {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
-  background: rgba(26, 26, 26, 0.05);
+  width: 100%;
+  aspect-ratio: 1.1;
+  border-radius: 18px;
+  background: #FFFFFF;
+  border: 1px solid rgba(214, 207, 193, 0.55);
+  box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
   position: relative;
+  transition: box-shadow 0.18s ease;
+}
+
+.folder-card:hover .folder-card-preview {
+  box-shadow: var(--elevated-shadow);
 }
 
 .folder-card-preview i {
   color: var(--primary);
-  font-size: 36px;
+  opacity: 0.55;
+  font-size: 44px;
 }
 
 .folder-card-count {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .folder-card-menu {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 6px;
+  right: 6px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #FFFFFF;
-  border: 1px solid var(--input-border);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -811,16 +821,19 @@ html, body {
 
 .folder-card-menu i {
   font-size: 18px;
+  opacity: 1;
 }
 
 .folder-card-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  margin-top: 8px;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
 /* ─── Images Grid & Cards (1:1 Flutter Images Grid) ────── */
@@ -868,44 +881,57 @@ html, body {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #FFFFFF;
   backdrop-filter: blur(4px);
-  display: none;
+  display: none !important;
   align-items: center;
   justify-content: center;
-  z-index: 5;
+  z-index: 6;
   cursor: pointer;
   color: #FFFFFF;
 }
 
 .image-select-check.visible {
-  display: flex;
+  display: flex !important;
 }
 
 .image-select-check i {
-  font-size: 18px;
+  font-size: 16px;
   color: #FFFFFF;
 }
 
 .image-card.selected .image-select-check {
   background: var(--primary);
+  border-color: #FFFFFF;
 }
 
-.image-pin-badge {
+.image-card-badges {
   position: absolute;
   top: 8px;
   left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.image-pin-badge,
+.image-lock-badge {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(255, 149, 0, 0.92);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  z-index: 3;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+.image-pin-badge {
+  background: rgba(255, 149, 0, 0.95);
 }
 
 .image-pin-badge i {
@@ -914,20 +940,7 @@ html, body {
 }
 
 .image-lock-badge {
-  position: absolute;
-  top: 8px;
-  right: 42px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(26, 26, 26, 0.75);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #FFFFFF;
-  z-index: 3;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: rgba(229, 57, 53, 0.92);
 }
 
 .image-lock-badge i {
@@ -935,14 +948,14 @@ html, body {
   color: #FFFFFF;
 }
 
-.image-delete-btn {
+.image-card-menu-btn {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   border: none;
   display: flex;
@@ -950,18 +963,24 @@ html, body {
   justify-content: center;
   color: #FFFFFF;
   cursor: pointer;
-  z-index: 4;
+  z-index: 5;
   transition: background 0.15s, transform 0.15s;
 }
 
-.image-delete-btn:hover {
-  background: var(--error);
-  transform: scale(1.1);
+.image-card-menu-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+  transform: scale(1.08);
 }
 
-.image-delete-btn i {
-  font-size: 16px;
+.image-card-menu-btn i {
+  font-size: 18px;
   color: #FFFFFF;
+}
+
+/* Hide menu & badges when in multi-select mode */
+.image-select-check.visible ~ .image-card-badges,
+.image-select-check.visible ~ .image-card-menu-btn {
+  display: none !important;
 }
 
 .image-name {
@@ -1928,6 +1947,24 @@ html, body, .main-content, .notes-list, .images-grid, .folders-grid, .modal, .mo
   font-weight: 700;
   color: var(--text-primary);
   flex: 1;
+}
+
+.folder-header-menu-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--primary);
+  transition: background 0.15s;
+}
+
+.folder-header-menu-btn:hover {
+  background: #DDD8CC;
 }
 
 .new-folder-row {

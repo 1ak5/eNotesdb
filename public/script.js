@@ -2422,15 +2422,17 @@ if (response.ok) {
       targetGrid.innerHTML = images.map(img => `
         <div class="image-card ${this.selectedImages.has(img._id) ? 'selected' : ''}" data-id="${img._id}" onclick="app.handleImageClick(event, '${img._id}', '${img.cloudUrl}', '${img.isPinned}', '${img.isLocked}')">
           <div class="image-select-check ${this.isSelectMode ? 'visible' : ''}" onclick="event.stopPropagation(); app.toggleImageSelect('${img._id}')">
-            <i class="material-icons">${this.selectedImages.has(img._id) ? 'check_circle' : 'radio_button_unchecked'}</i>
+            <i class="material-icons">${this.selectedImages.has(img._id) ? 'check' : ''}</i>
           </div>
           <img src="${img.cloudUrl}" alt="${this.escapeHtml(img.fileName || '')}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'/>'">
-          ${img.isPinned ? '<div class="image-pin-badge" title="Pinned"><i class="material-icons">push_pin</i></div>' : ''}
-          ${img.isLocked ? '<div class="image-lock-badge" title="Locked"><i class="material-icons">lock</i></div>' : ''}
-          <div class="image-name">${this.escapeHtml(img.fileName || '')}</div>
-          <button class="image-delete-btn" onclick="event.stopPropagation(); app.deleteImage('${img._id}')" title="Delete">
-            <i class="material-icons">delete</i>
+          <div class="image-card-badges">
+            ${img.isPinned ? '<div class="image-pin-badge" title="Pinned"><i class="material-icons">push_pin</i></div>' : ''}
+            ${img.isLocked ? '<div class="image-lock-badge" title="Locked"><i class="material-icons">lock</i></div>' : ''}
+          </div>
+          <button class="image-card-menu-btn" onclick="event.stopPropagation(); app.showImageContextMenu(event, '${img._id}', ${img.isPinned}, ${img.isLocked})" title="Options">
+            <i class="material-icons">more_vert</i>
           </button>
+          <div class="image-name">${this.escapeHtml(img.fileName || '')}</div>
         </div>
       `).join('');
     } catch (e) {
@@ -2487,13 +2489,20 @@ if (response.ok) {
     this.currentImageFolder = folderId;
     const folderHeader = document.getElementById('folder-header');
     const folderTitle = document.getElementById('folder-title');
-    const newFolderRow = document.getElementById('new-folder-row');
+    const folderActions = document.getElementById('folder-actions');
+    const newFolderBtn = document.getElementById('new-folder-btn');
     const foldersGrid = document.getElementById('folders-grid');
-    const lockedGrid = document.getElementById('locked-images-grid');
 
     if (folderHeader) folderHeader.classList.remove('hidden');
     if (folderTitle) folderTitle.textContent = folderName;
-    if (newFolderRow) newFolderRow.classList.add('hidden');
+    if (folderActions) {
+      folderActions.innerHTML = `
+        <button class="folder-header-menu-btn" onclick="app.showFolderMenu(event, '${folderId}', '${folderName.replace(/'/g, "\\'")}')" title="Folder Options">
+          <i class="material-icons">more_vert</i>
+        </button>
+      `;
+    }
+    if (newFolderBtn) newFolderBtn.style.display = 'none';
     if (foldersGrid) foldersGrid.classList.add('hidden');
     // Reload images filtered to this folder
     const activeTab = document.querySelector('.images-tab.active');
@@ -2504,35 +2513,68 @@ if (response.ok) {
   exitFolder() {
     this.currentImageFolder = null;
     const folderHeader = document.getElementById('folder-header');
-    const newFolderRow = document.getElementById('new-folder-row');
+    const folderActions = document.getElementById('folder-actions');
+    const newFolderBtn = document.getElementById('new-folder-btn');
     const foldersGrid = document.getElementById('folders-grid');
 
     if (folderHeader) folderHeader.classList.add('hidden');
-    if (newFolderRow) newFolderRow.classList.remove('hidden');
+    if (folderActions) folderActions.innerHTML = '';
+    if (newFolderBtn) newFolderBtn.style.display = '';
     if (foldersGrid) foldersGrid.classList.remove('hidden');
     const activeTab = document.querySelector('.images-tab.active');
     const section = activeTab ? activeTab.dataset.imgtab : 'regular';
     this.loadImages(section);
   }
 
-  async showCreateFolderDialog() {
-    const name = prompt('Folder name:');
-    if (!name || !name.trim()) return;
-    try {
-      const activeTab = document.querySelector('.images-tab.active');
-      const section = activeTab ? activeTab.dataset.imgtab : 'regular';
-      const res = await fetch('/api/image-folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name: name.trim(), section })
-      });
-      if (res.ok) {
-        await this.loadFolders(section);
-        // Also reload images to update unfoldered count
-        await this.loadImages(section);
+  showCreateFolderDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'rename-modal-overlay';
+    overlay.innerHTML = `
+      <div class="rename-modal">
+        <h3>New Folder</h3>
+        <input type="text" id="new-folder-name-input" placeholder="Folder name..." autofocus>
+        <div class="rename-modal-actions">
+          <button class="rename-cancel-btn">Cancel</button>
+          <button class="rename-save-btn">Create</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#new-folder-name-input');
+    input.focus();
+
+    const doCreate = async () => {
+      const name = input.value.trim();
+      if (!name) return;
+      overlay.remove();
+      try {
+        const activeTab = document.querySelector('.images-tab.active');
+        const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+        const res = await fetch('/api/image-folders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name, section })
+        });
+        if (res.ok) {
+          await this.loadFolders(section);
+          await this.loadImages(section);
+        }
+      } catch (e) {
+        console.error('Create folder error:', e);
       }
-    } catch (e) { console.error('Create folder error:', e); }
+    };
+
+    overlay.querySelector('.rename-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.rename-save-btn').addEventListener('click', doCreate);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doCreate();
+      if (e.key === 'Escape') overlay.remove();
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
   }
 
   showFolderMenu(event, folderId, folderName) {
@@ -2589,7 +2631,138 @@ if (response.ok) {
     };
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
+
+  showImageContextMenu(event, imageId, isPinned, isLocked) {
+    document.querySelectorAll('.folder-context-menu').forEach(m => m.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'folder-context-menu';
+    const isRoot = !this.currentImageFolder;
+    const pinned = isPinned === 'true' || isPinned === true;
+    const locked = isLocked === 'true' || isLocked === true;
+
+    menu.innerHTML = `
+      <button class="folder-context-menu-item" data-action="pin">
+        <i class="material-icons">push_pin</i> ${pinned ? 'Unpin' : 'Pin'}
+      </button>
+      <button class="folder-context-menu-item" data-action="lock">
+        <i class="material-icons">${locked ? 'lock_open' : 'lock'}</i> ${locked ? 'Unlock' : 'Lock'}
+      </button>
+      <button class="folder-context-menu-item" data-action="move">
+        <i class="material-icons">drive_file_move</i> Move to folder...
+      </button>
+      ${!isRoot ? `
+      <button class="folder-context-menu-item" data-action="move-root">
+        <i class="material-icons">home</i> Move to root
+      </button>` : ''}
+      <div class="folder-context-menu-divider"></div>
+      <button class="folder-context-menu-item danger" data-action="delete">
+        <i class="material-icons">delete</i> Delete
+      </button>
+    `;
+
+    const targetBtn = event ? (event.currentTarget || (event.target ? event.target.closest('button') : null)) : null;
+    if (targetBtn) {
+      const rect = targetBtn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (rect.bottom + 6) + 'px';
+      menu.style.right = (window.innerWidth - rect.right) + 'px';
+      menu.style.left = 'auto';
+    } else {
+      menu.style.position = 'fixed';
+      menu.style.top = '50%';
+      menu.style.left = '50%';
+      menu.style.transform = 'translate(-50%, -50%)';
+    }
+    menu.style.zIndex = '99999';
+    document.body.appendChild(menu);
+
+    menu.querySelector('[data-action="pin"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.toggleImagePin(imageId);
+    });
+
+    menu.querySelector('[data-action="lock"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.toggleImageLock(imageId);
+    });
+
+    menu.querySelector('[data-action="move"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.showMoveImageDialog(imageId);
+    });
+
+    if (!isRoot && menu.querySelector('[data-action="move-root"]')) {
+      menu.querySelector('[data-action="move-root"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.remove();
+        this.moveImageToFolder(imageId, null);
+      });
+    }
+
+    menu.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.remove();
+      this.deleteImage(imageId);
+    });
+
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) && (!targetBtn || !targetBtn.contains(e.target))) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  }
+
+  async showMoveImageDialog(imageId) {
+    try {
+      const activeTab = document.querySelector('.images-tab.active');
+      const section = activeTab ? activeTab.dataset.imgtab : 'regular';
+      const res = await fetch(`/api/image-folders?section=${section}`, { credentials: 'include' });
+      const folders = res.ok ? await res.json() : [];
+
+      const overlay = document.createElement('div');
+      overlay.className = 'rename-modal-overlay';
+      overlay.innerHTML = `
+        <div class="rename-modal" style="text-align: left; max-height: 80vh; overflow-y: auto;">
+          <h3 style="text-align: center; margin-bottom: 16px;">Move to Folder</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            ${this.currentImageFolder ? `
+              <button class="folder-context-menu-item" data-folder-id="root" style="border: 1px solid var(--input-border); border-radius: 12px; padding: 12px 14px;">
+                <i class="material-icons">home</i> Root (No Folder)
+              </button>
+            ` : ''}
+            ${folders.length === 0 ? `<div style="text-align: center; color: var(--text-secondary); font-size: 13px; padding: 12px 0;">No folders available</div>` : ''}
+            ${folders.map(f => `
+              <button class="folder-context-menu-item" data-folder-id="${f._id}" style="border: 1px solid var(--input-border); border-radius: 12px; padding: 12px 14px;">
+                <i class="material-icons">folder</i> ${this.escapeHtml(f.name)}
+              </button>
+            `).join('')}
+          </div>
+          <div class="rename-modal-actions" style="margin-top: 18px;">
+            <button class="rename-cancel-btn" style="width: 100%;">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelectorAll('[data-folder-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fid = btn.dataset.folderId === 'root' ? null : btn.dataset.folderId;
+          overlay.remove();
+          this.moveImageToFolder(imageId, fid);
+        });
+      });
+
+      overlay.querySelector('.rename-cancel-btn').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    } catch (e) {
+      console.error('Show move image dialog error:', e);
+    }
   }
 
   showRenameDialog(folderId, currentName) {
@@ -2666,7 +2839,6 @@ if (response.ok) {
   }
 
   async deleteFolderById(folderId) {
-    if (!confirm('Delete this folder? Images inside will be moved to root.')) return;
     try {
       const res = await fetch('/api/image-folders/' + folderId, {
         method: 'DELETE',
@@ -2904,7 +3076,7 @@ if (response.ok) {
       if (check) {
         check.classList.toggle('visible', this.isSelectMode);
         const icon = check.querySelector('i');
-        icon.textContent = this.selectedImages.has(id) ? 'check_circle' : 'radio_button_unchecked';
+        icon.textContent = this.selectedImages.has(id) ? 'check' : '';
       }
       card.classList.toggle('selected', this.selectedImages.has(id));
     });

@@ -198,7 +198,16 @@ const UserSettings = mongoose.model('UserSettings', userSettingsSchema);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static('public', {
+  setHeaders: (res, filePath) => {
+    // Disable aggressive browser caching for HTML, CSS, JS so updates reflect immediately
+    if (filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',

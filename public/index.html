@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>eNotes - Real-time</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.4">
 </head>
 <body>
     <!-- Login/Register Screen -->
@@ -148,9 +148,14 @@
                         <button class="images-tab active" data-imgtab="regular">Regular</button>
                         <button class="images-tab" data-imgtab="locked"><i class="material-icons" style="font-size:14px">lock</i> Locked</button>
                     </div>
-                    <button id="add-image-btn" class="add-image-btn">
-                        <i class="material-icons">add_photo_alternate</i> Add
-                    </button>
+                    <div class="images-toolbar-actions">
+                        <button id="new-folder-btn" class="new-folder-btn">
+                            <i class="material-icons">create_new_folder</i> New Folder
+                        </button>
+                        <button id="add-image-btn" class="add-image-btn">
+                            <i class="material-icons">add_photo_alternate</i> Add Image
+                        </button>
+                    </div>
                 </div>
                 <input type="file" id="image-file-input" accept="image/*" style="display:none">
                 <div id="images-select-bar" class="images-select-bar hidden">
@@ -169,13 +174,6 @@
                     <button id="folder-back-btn" class="folder-back-btn"><i class="material-icons">arrow_back</i></button>
                     <span id="folder-title" class="folder-title"></span>
                     <span id="folder-actions"></span>
-                </div>
-
-                <!-- New folder button (only when NOT inside a folder) -->
-                <div id="new-folder-row" class="new-folder-row">
-                    <button id="new-folder-btn" class="new-folder-btn">
-                        <i class="material-icons">create_new_folder</i> New Folder
-                    </button>
                 </div>
 
                 <!-- Folders grid -->
@@ -335,6 +333,6 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=2.4"></script>
 </body>
 </html>
