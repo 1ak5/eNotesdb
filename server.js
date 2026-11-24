@@ -164,6 +164,9 @@ const noteSchema = new mongoose.Schema({
 
 const imageSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  // Client-generated idempotency key (the local image UUID). Prevents the same
+  // image from being created twice when multiple sync paths race.
+  clientId: { type: String, index: true, default: null },
   cloudUrl: { type: String, required: true },
   fileName: { type: String, required: true },
   isPinned: { type: Boolean, default: false },
@@ -646,10 +649,19 @@ app.get('/api/images', requireAuth, async (req, res) => {
 
 app.post('/api/images', requireAuth, async (req, res) => {
   try {
-    const { cloudUrl, fileName, isPinned, isLocked, section, folderId } = req.body;
+    const { cloudUrl, fileName, isPinned, isLocked, section, folderId, clientId } = req.body;
     if (!cloudUrl) return res.status(400).json({ error: 'cloudUrl required' });
+
+    // ─── Idempotency: if this local image was already uploaded (race between
+    // sync paths), return the existing record instead of creating a duplicate.
+    if (clientId) {
+      const existing = await Image.findOne({ userId: req.session.userId, clientId }).lean();
+      if (existing) return res.json(existing);
+    }
+
     const imageData = {
       userId: req.session.userId,
+      clientId: clientId || null,
       cloudUrl,
       fileName: fileName || 'image',
       isPinned: isPinned || false,
