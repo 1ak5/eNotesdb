@@ -238,43 +238,45 @@ const requireAuth = (req, res, next) => {
 
 // ─── SOCKET.IO ──────────────────────────────────────────
 
-const userSockets = new Map();
-io.engine.pingTimeout = 10000;
-io.engine.pingInterval = 5000;
+io.engine.pingTimeout = 20000;
+io.engine.pingInterval = 10000;
 
+// A single user can be logged in from MANY devices at once. Every socket joins
+// the room `user_<userId>`, and broadcasts go to the room so ALL devices
+// (phones, tablets, web) receive real-time updates simultaneously.
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('authenticate', (userId) => {
-    if (userId) {
-      const existing = userSockets.get(userId);
-      if (existing) {
-        const s = io.sockets.sockets.get(existing);
-        if (s) s.disconnect();
-      }
-      userSockets.set(userId, socket.id);
-      socket.userId = userId;
-      socket.join('user_' + userId);
-      console.log('User ' + userId + ' authenticated');
-      socket.emit('sync_required');
-    }
-  });
+  const joinUserRoom = (uid) => {
+    if (!uid) return;
+    const id = uid.toString();
+    socket.userId = id;
+    socket.join('user_' + id);
+    console.log('User ' + id + ' joined room (socket ' + socket.id + ')');
+    socket.emit('sync_required');
+  };
+
+  // Auto-join using the authenticated session cookie (works for every device).
+  try {
+    const sessionUserId = socket.request && socket.request.session && socket.request.session.userId;
+    if (sessionUserId) joinUserRoom(sessionUserId);
+  } catch (e) { /* ignore */ }
+
+  // Explicit authenticate from the client (fallback when cookies are absent).
+  socket.on('authenticate', (userId) => joinUserRoom(userId));
 
   socket.on('disconnect', () => {
     if (socket.userId) {
       socket.leave('user_' + socket.userId);
-      userSockets.delete(socket.userId);
       console.log('User ' + socket.userId + ' disconnected');
     }
   });
 });
 
+// Broadcast to EVERY connected device of a user (multi-device support).
 const broadcastToUser = (userId, event, data) => {
-  const socketId = userSockets.get(userId.toString());
-  if (socketId) {
-    io.volatile.to(socketId).emit(event, data);
-    io.to(socketId).emit(event, data);
-  }
+  if (!userId) return;
+  io.to('user_' + userId.toString()).emit(event, data);
 };
 
 const broadcastNotebookUpdate = async (userId, section) => {
